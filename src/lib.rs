@@ -283,8 +283,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
 
     /// Remove the node at the given index from the `Dag` and return it if it exists.
     ///
-    /// Note: Calling this may shift (and in turn invalidate) other previously returned node
-    /// indices!
+    /// Note: Calling this may shift (and in turn invalidate) previously returned node indices!
     pub fn remove_node(&mut self, node: NodeIndex<Ix>) -> Option<N> {
         self.graph.remove_node(node)
     }
@@ -388,4 +387,17 @@ impl<Ix> WalkParents<Ix> where Ix: IndexType {
     }
 
 }
+
+impl<E> ::std::fmt::Display for WouldCycle<E> where E: ::std::fmt::Debug {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        writeln!(f, "{:?}", self)
+    }
+}
+
+impl<E> ::std::error::Error for WouldCycle<E> where E: ::std::fmt::Debug + ::std::any::Any {
+    fn description(&self) -> &str {
+        "Adding this input would have caused the graph to cycle!"
+    }
+}
+
 
