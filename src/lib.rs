@@ -193,13 +193,21 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     pub fn update_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
-        if let Some(edge_idx) = self.graph.find_edge(a, b) {
-            if let Some(edge) = self.graph.edge_weight_mut(edge_idx) {
+        if let Some(edge_idx) = self.find_edge(a, b) {
+            if let Some(edge) = self.edge_weight_mut(edge_idx) {
                 *edge = weight;
                 return Ok(edge_idx);
             }
         }
         self.add_edge(a, b, weight)
+    }
+
+    /// Find and return the index to the edge that describes `a` -> `b` if there is one.
+    ///
+    /// Computes in **O(e')** time, where **e'** is the number of edges connected to the nodes `a`
+    /// and `b`.
+    pub fn find_edge(&self, a: NodeIndex<Ix>, b: NodeIndex<Ix>) -> Option<EdgeIndex<Ix>> {
+        self.graph.find_edge(a, b)
     }
 
     /// Add a new edge and parent node to the node at the given `NodeIndex`.
