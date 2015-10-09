@@ -16,7 +16,7 @@ extern crate petgraph as pg;
 
 
 pub use pg as petgraph;
-pub use pg::graph::{EdgeIndex, NodeIndex};
+pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
 use pg::graph::{DefIndex, GraphIndex, IndexType};
 use std::ops::{Index, IndexMut};
 
@@ -24,6 +24,10 @@ use std::ops::{Index, IndexMut};
 /// The Petgraph to be used internally within the Dag for storing/managing nodes and edges.
 pub type PetGraph<N, E, Ix> = pg::Graph<N, E, pg::Directed, Ix>;
 
+/// Read only access into a **Dag**'s internal node array.
+pub type RawNodes<'a, N, Ix> = &'a [pg::graph::Node<N, Ix>];
+/// Read only access into a **Dag**'s internal edge array.
+pub type RawEdges<'a, E, Ix> = &'a [pg::graph::Edge<E, Ix>];
 
 /// A Directed acyclic graph (DAG) data structure.
 ///
@@ -90,12 +94,17 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         Dag { graph: PetGraph::with_capacity(nodes, edges) }
     }
 
-    /// The total number of nodes in the Dag.
+    /// Removes all nodes and edges from the **Dag**.
+    pub fn clear(&mut self) {
+        self.graph.clear();
+    }
+
+    /// The total number of nodes in the **Dag**.
     pub fn node_count(&self) -> usize {
         self.graph.node_count()
     }
 
-    /// The total number of edgees in the Dag.
+    /// The total number of edgees in the **Dag**.
     pub fn edge_count(&self) -> usize {
         self.graph.edge_count()
     }
@@ -264,6 +273,18 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         self.graph.node_weight_mut(node)
     }
 
+    /// Read from the internal node array.
+    pub fn raw_nodes(&self) -> RawNodes<N, Ix> {
+        self.graph.raw_nodes()
+    }
+
+    /// An iterator yielding mutable access to all node weights.
+    ///
+    /// The order in which weights are yielded matches the order of their node indices.
+    pub fn node_weights_mut(&mut self) -> NodeWeightsMut<N, Ix> {
+        self.graph.node_weights_mut()
+    }
+
     /// Borrow the weight from the edge at the given index.
     pub fn edge_weight(&self, edge: EdgeIndex<Ix>) -> Option<&E> {
         self.graph.edge_weight(edge)
@@ -272,6 +293,18 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// Mutably borrow the weight from the edge at the given index.
     pub fn edge_weight_mut(&mut self, edge: EdgeIndex<Ix>) -> Option<&mut E> {
         self.graph.edge_weight_mut(edge)
+    }
+
+    /// Read from the internal edge array.
+    pub fn raw_edges(&self) -> RawEdges<E, Ix> {
+        self.graph.raw_edges()
+    }
+
+    /// An iterator yielding mutable access to all edge weights.
+    ///
+    /// The order in which weights are yielded matches the order of their edge indices.
+    pub fn edge_weights_mut(&mut self) -> EdgeWeightsMut<E, Ix> {
+        self.graph.edge_weights_mut()
     }
 
     /// Index the `Dag` by two indices.
@@ -307,6 +340,8 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// An iterator over all nodes that are parents to the node at the given index.
     ///
     /// The returned iterator yields `EdgeIndex<Ix>`s.
+    ///
+    /// Produces an empty iterator if there is no node at the given index.
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<E, Ix> {
         self.graph.neighbors_directed(child, pg::Incoming)
     }
@@ -322,6 +357,8 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// An iterator over all nodes that are children to the node at the given index.
     ///
     /// The returned iterator yields `EdgeIndex<Ix>`s.
+    ///
+    /// Produces an empty iterator if there is no node at the given index.
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<E, Ix> {
         self.graph.neighbors_directed(parent, pg::Outgoing)
     }
