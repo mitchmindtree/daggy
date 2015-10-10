@@ -76,6 +76,13 @@ pub struct WalkParents<Ix: IndexType> {
 }
 
 
+/// An iterator yielding multiple `EdgeIndex`s, returned by the `Graph::add_edges` method.
+pub struct EdgeIndices<Ix: IndexType> {
+    indices: ::std::ops::Range<usize>,
+    _phantom: ::std::marker::PhantomData<Ix>,
+}
+
+
 /// An error returned by the `Dag::add_edge` method in the case that adding an edge would have
 /// caused the graph to cycle.
 #[derive(Copy, Clone, Debug)]
@@ -177,6 +184,64 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
             Err(WouldCycle(weight))
         } else {
             Ok(idx)
+        }
+    }
+
+    /// Adds the given directed edges to the `Dag`, each with their own given weight.
+    ///
+    /// The given iterator should yield a `NodeIndex` pair along with a weight for each Edge to be
+    /// added in a tuple.
+    ///
+    /// If we were to describe the tuple as *(a, b, weight)*, the connection would be directed as
+    /// follows:
+    ///
+    /// *a -> b*
+    ///
+    /// This method behaves similarly to the [`add_edge`](./struct.Dag.html#method.add_edge)
+    /// method, however rather than checking whether or not a cycle has been created after adding
+    /// each edge, it only checks after all edges have been added. This makes it a slightly more
+    /// performant and ergonomic option that repeatedly calling `add_edge`.
+    ///
+    /// If adding the edges **would not** cause the graph to cycle, the edges will be added and
+    /// their indices returned in an `EdgeIndices` iterator, yielding indices for each edge in the
+    /// same order that they were given.
+    ///
+    /// If adding the edges **would** cause the graph to cycle, the edges will not be added and
+    /// instead a `WouldCycle<Vec<E>>` error with the unused weights will be returned. The order of
+    /// the returned `Vec` will be the reverse of the given order.
+    ///
+    /// **Note:** Dag allows adding parallel ("duplicate") edges. If you want to avoid this, use
+    /// [`update_edges`](./struct.Dag.html#method.update_edges) instead.
+    ///
+    /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
+    ///  the [add_child](./struct.Dag.html#method.add_child) or [add_parent]
+    ///  (./struct.Dag.html#method.add_parent) methods instead for better performance. These
+    ///  perform better as there is no need to check for cycles.
+    ///
+    /// **Panics if the Graph is at the maximum number of nodes for its index type.
+    pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>> where
+        I: ::std::iter::IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
+    {
+        let mut num_edges = 0;
+        for (a, b, weight) in edges {
+            self.graph.add_edge(a, b, weight);
+            num_edges += 1;
+        }
+
+        let total_edges = self.edge_count();
+        let new_edges_range = total_edges-num_edges .. total_edges;
+
+        // Check if adding the edges has created a cycle.
+        // TODO: Once petgraph adds support for re-using visit stack/maps, use that so that we
+        // don't have to re-allocate every time `add_edges` is called.
+        if pg::algo::is_cyclic_directed(&self.graph) {
+            let removed_edges = new_edges_range.rev().filter_map(|i| {
+                let idx = EdgeIndex::new(i);
+                self.graph.remove_edge(idx)
+            });
+            Err(WouldCycle(removed_edges.collect()))
+        } else {
+            Ok(EdgeIndices { indices: new_edges_range, _phantom: ::std::marker::PhantomData, })
         }
     }
 
@@ -431,6 +496,13 @@ impl<Ix> WalkParents<Ix> where Ix: IndexType {
         self.walk_edges.next_neighbor(&dag.graph)
     }
 
+}
+
+impl<Ix> Iterator for EdgeIndices<Ix> where Ix: IndexType {
+    type Item = EdgeIndex<Ix>;
+    fn next(&mut self) -> Option<EdgeIndex<Ix>> {
+        self.indices.next().map(|i| EdgeIndex::new(i))
+    }
 }
 
 impl<E> ::std::fmt::Display for WouldCycle<E> where E: ::std::fmt::Debug {
