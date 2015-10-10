@@ -15,9 +15,16 @@
 extern crate petgraph as pg;
 
 
-pub use pg as petgraph;
-pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
-use pg::graph::{DefIndex, GraphIndex, IndexType};
+use pg::graph::{
+    self,
+    EdgeIndex,
+    NodeIndex,
+    EdgeWeightsMut,
+    NodeWeightsMut,
+    DefIndex,
+    GraphIndex,
+    IndexType
+};
 use std::ops::{Index, IndexMut};
 
 
@@ -25,9 +32,9 @@ use std::ops::{Index, IndexMut};
 pub type PetGraph<N, E, Ix> = pg::Graph<N, E, pg::Directed, Ix>;
 
 /// Read only access into a **Dag**'s internal node array.
-pub type RawNodes<'a, N, Ix> = &'a [pg::graph::Node<N, Ix>];
+pub type RawNodes<'a, N, Ix> = &'a [graph::Node<N, Ix>];
 /// Read only access into a **Dag**'s internal edge array.
-pub type RawEdges<'a, E, Ix> = &'a [pg::graph::Edge<E, Ix>];
+pub type RawEdges<'a, E, Ix> = &'a [graph::Edge<E, Ix>];
 
 /// A Directed acyclic graph (DAG) data structure.
 ///
@@ -59,20 +66,20 @@ pub struct Dag<N, E, Ix: IndexType = DefIndex> {
 
 
 /// An iterator yielding indices to the children of some node.
-pub type Children<'a, E, Ix> = pg::graph::Neighbors<'a, E, Ix>;
+pub type Children<'a, E, Ix> = graph::Neighbors<'a, E, Ix>;
 
 /// A "walker" object that can be used to step through the children of some parent node.
 pub struct WalkChildren<Ix: IndexType> {
-    walk_edges: pg::graph::WalkEdges<Ix>,
+    walk_edges: graph::WalkEdges<Ix>,
 }
 
 
 /// An iterator yielding indices to the parents of some node.
-pub type Parents<'a, E, Ix> = pg::graph::Neighbors<'a, E, Ix>;
+pub type Parents<'a, E, Ix> = graph::Neighbors<'a, E, Ix>;
 
 /// A "walker" object that can be used to step through the children of some parent node.
 pub struct WalkParents<Ix: IndexType> {
-    walk_edges: pg::graph::WalkEdges<Ix>,
+    walk_edges: graph::WalkEdges<Ix>,
 }
 
 
