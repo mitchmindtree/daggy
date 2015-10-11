@@ -1,4 +1,4 @@
-//! 
+//!
 //! **daggy** is a directed acyclic graph data structure library.
 //!
 //! The most prominent type is [**Dag**](./struct.Dag.html) - a wrapper around [petgraph]
@@ -380,7 +380,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     }
 
     /// Index the `Dag` by two indices.
-    /// 
+    ///
     /// Both indices can be either `NodeIndex`s, `EdgeIndex`s or a combination of the two.
     ///
     /// **Panics** if the indices are equal or if they are out of bounds.
@@ -402,7 +402,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     }
 
     /// Remove an edge and return its weight, or `None` if it didn't exist.
-    /// 
+    ///
     /// Computes in **O(e')** time, where **e'** is the size of four particular edge lists, for the
     /// nodes of **e** and the nodes of another affected edge.
     pub fn remove_edge(&mut self, e: EdgeIndex<Ix>) -> Option<E> {
