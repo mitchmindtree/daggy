@@ -404,7 +404,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
 
     /// An iterator over all nodes that are parents to the node at the given index.
     ///
-    /// The returned iterator yields `EdgeIndex<Ix>`s.
+    /// The returned iterator yields `NodeIndex<Ix>`s.
     ///
     /// Produces an empty iterator if there is no node at the given index.
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<E, Ix> {
@@ -421,7 +421,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
 
     /// An iterator over all nodes that are children to the node at the given index.
     ///
-    /// The returned iterator yields `EdgeIndex<Ix>`s.
+    /// The returned iterator yields `NodeIndex<Ix>`s.
     ///
     /// Produces an empty iterator if there is no node at the given index.
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<E, Ix> {
