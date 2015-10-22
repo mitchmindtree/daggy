@@ -22,6 +22,7 @@ pub use pg as petgraph;
 pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
 pub use walker::Walker;
 use pg::graph::{DefIndex, GraphIndex, IndexType};
+use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
 
@@ -66,21 +67,25 @@ pub struct Dag<N, E, Ix: IndexType = DefIndex> {
 
 
 /// A "walker" object that can be used to step through the children of some parent node.
-pub struct Children<Ix: IndexType> {
+pub struct Children<N, E, Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
+    _node: PhantomData<N>,
+    _edge: PhantomData<E>,
 }
 
 
 /// A "walker" object that can be used to step through the children of some parent node.
-pub struct Parents<Ix: IndexType> {
+pub struct Parents<N, E, Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
+    _node: PhantomData<N>,
+    _edge: PhantomData<E>,
 }
 
 
 /// An iterator yielding multiple `EdgeIndex`s, returned by the `Graph::add_edges` method.
 pub struct EdgeIndices<Ix: IndexType> {
     indices: ::std::ops::Range<usize>,
-    _phantom: ::std::marker::PhantomData<Ix>,
+    _phantom: PhantomData<Ix>,
 }
 
 
@@ -412,9 +417,13 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
     /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
-    pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<Ix> {
+    pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
         let walk_edges = self.graph.walk_edges_directed(child, pg::Incoming);
-        Parents { walk_edges: walk_edges }
+        Parents {
+            walk_edges: walk_edges,
+            _node: PhantomData,
+            _edge: PhantomData,
+        }
     }
 
     /// A "walker" object that may be used to step through the children of the given parent node.
@@ -426,9 +435,13 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
     /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
-    pub fn children(&self, parent: NodeIndex<Ix>) -> Children<Ix> {
+    pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
         let walk_edges = self.graph.walk_edges_directed(parent, pg::Outgoing);
-        Children { walk_edges: walk_edges }
+        Children {
+            walk_edges: walk_edges,
+            _node: PhantomData,
+            _edge: PhantomData,
+        }
     }
 
 }
@@ -461,9 +474,10 @@ impl<N, E, Ix> IndexMut<EdgeIndex<Ix>> for Dag<N, E, Ix> where Ix: IndexType {
 }
 
 
-impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Children<Ix>
+impl<N, E, Ix> Walker for Children<N, E, Ix>
     where Ix: IndexType,
 {
+    type Graph = Dag<N, E, Ix>;
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
@@ -471,33 +485,14 @@ impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Children<Ix>
     }
 }
 
-impl<N, E, Ix> Walker<PetGraph<N, E, Ix>> for Children<Ix>
+impl<N, E, Ix> Walker for Parents<N, E, Ix>
     where Ix: IndexType,
 {
-    type Index = Ix;
-    #[inline]
-    fn next(&mut self, graph: &PetGraph<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
-        self.walk_edges.next_neighbor(&graph)
-    }
-}
-
-impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Parents<Ix>
-    where Ix: IndexType,
-{
+    type Graph = Dag<N, E, Ix>;
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
         self.walk_edges.next_neighbor(&dag.graph)
-    }
-}
-
-impl<N, E, Ix> Walker<PetGraph<N, E, Ix>> for Parents<Ix>
-    where Ix: IndexType,
-{
-    type Index = Ix;
-    #[inline]
-    fn next(&mut self, graph: &PetGraph<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
-        self.walk_edges.next_neighbor(&graph)
     }
 }
 

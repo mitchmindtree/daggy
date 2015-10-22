@@ -1,7 +1,7 @@
 
 extern crate daggy;
 
-use daggy::{Dag, EdgeIndex, NodeIndex, Walker};
+use daggy::{Dag, Walker};
 
 #[derive(Copy, Clone, Debug)]
 struct Weight;
@@ -126,8 +126,7 @@ fn filter() {
     dag.add_child(parent, (), 4);
     dag.add_child(parent, (), 5);
 
-    let mut even_children = dag.children(parent)
-        .filter(|g: &Dag<i32, ()>, _, n| g[n] % 2 == 0);
+    let mut even_children = dag.children(parent).filter(|g, _, n| g[n] % 2 == 0);
     assert_eq!(4, dag[even_children.next_node(&dag).unwrap()]);
     assert_eq!(2, dag[even_children.next_node(&dag).unwrap()]);
     assert_eq!(0, dag[even_children.next_node(&dag).unwrap()]);
@@ -166,8 +165,7 @@ fn skip_while() {
     dag.add_child(parent, (), 4);
     dag.add_child(parent, (), 5);
 
-    let mut children_under_3 = dag.children(parent)
-        .skip_while(|g: &Dag<i32, ()>, _, n| g[n] >= 3);
+    let mut children_under_3 = dag.children(parent).skip_while(|g, _, n| g[n] >= 3);
     assert_eq!(2, dag[children_under_3.next_node(&dag).unwrap()]);
     assert_eq!(1, dag[children_under_3.next_node(&dag).unwrap()]);
     assert_eq!(0, dag[children_under_3.next_node(&dag).unwrap()]);
@@ -186,8 +184,7 @@ fn take_while() {
     dag.add_child(parent, (), 4);
     dag.add_child(parent, (), 5);
 
-    let mut children_over_2 = dag.children(parent)
-        .take_while(|g: &Dag<i32, ()>, _, n| g[n] > 2);
+    let mut children_over_2 = dag.children(parent).take_while(|g, _, n| g[n] > 2);
     assert_eq!(5, dag[children_over_2.next_node(&dag).unwrap()]);
     assert_eq!(4, dag[children_over_2.next_node(&dag).unwrap()]);
     assert_eq!(3, dag[children_over_2.next_node(&dag).unwrap()]);
@@ -241,16 +238,12 @@ fn all() {
     dag.add_child(parent, (), 2);
     dag.add_child(parent, (), 4);
 
-    fn is_even(g: &Dag<i32, ()>, _: EdgeIndex, n: NodeIndex) -> bool {
-        g[n] % 2 == 0
-    }
-
     let mut children = dag.children(parent);
-    assert!(children.all(&dag, is_even));
+    assert!(children.all(&dag, |g, _, n| g[n] % 2 == 0));
 
     dag.add_child(parent, (), 7);
     children = dag.children(parent);
-    assert!(!children.all(&dag, is_even));
+    assert!(!children.all(&dag, |g, _, n| g[n] % 2 == 0));
 }
 
 
@@ -262,15 +255,11 @@ fn any() {
     dag.add_child(parent, (), 3);
     dag.add_child(parent, (), 5);
 
-    fn is_even(g: &Dag<i32, ()>, _: EdgeIndex, n: NodeIndex) -> bool {
-        g[n] % 2 == 0
-    }
-
-    assert!(!dag.children(parent).any(&dag, is_even));
+    assert!(!dag.children(parent).any(&dag, |g, _, n| g[n] % 2 == 0));
 
     dag.add_child(parent, (), 6);
 
-    assert!(dag.children(parent).any(&dag, is_even));
+    assert!(dag.children(parent).any(&dag, |g, _, n| g[n] % 2 == 0));
 }
 
 
@@ -282,15 +271,11 @@ fn find() {
     dag.add_child(parent, (), 3);
     dag.add_child(parent, (), 5);
 
-    fn is_even(g: &Dag<i32, ()>, _: EdgeIndex, n: NodeIndex) -> bool {
-        g[n] % 2 == 0
-    }
-
-    assert_eq!(None, dag.children(parent).find(&dag, is_even));
+    assert_eq!(None, dag.children(parent).find(&dag, |g, _, n| g[n] % 2 == 0));
 
     let (e, n) = dag.add_child(parent, (), 4);
 
-    assert_eq!(Some((e, n)), dag.children(parent).find(&dag, is_even));
+    assert_eq!(Some((e, n)), dag.children(parent).find(&dag, |g, _, n| g[n] % 2 == 0));
 }
 
 
