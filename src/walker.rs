@@ -1,27 +1,25 @@
-//! 
-//! A trait for providing genericity across types capable of walking a given graph.
-//!
-//! **Walker** can be likened to the std **Iterator** trait, but takes a reference to some graph as
-//! an argument to its "next" method.
-//!
-
+//! **Walker** is a trait providing a variety of useful methods for traversing graph types.
 
 
 use ::{EdgeIndex, NodeIndex};
 use pg::graph::IndexType;
+use std::marker::PhantomData;
 use std::ops::Index;
 
 
-/// Alias for an Edge/Node index pair.
+/// Short-hand for an edge node index pair.
 pub type IndexPair<Ix> = (EdgeIndex<Ix>, NodeIndex<Ix>);
 
 
-/// Types for walking through neihbouring node/edge pairs in a graph.
+/// A trait providing a variety of useful methods for traversing some graph type `G`.
 ///
-/// Similar to the **Iterator** trait, but takes a reference to some **Graph** as an argument to
-/// its "next" method.
+/// **Walker** can be likened to the std **Iterator** trait. It's methods behave similarly, but it
+/// is different in that it takes a reference to some graph as an argument to its "next" method.
+///
+/// **Walker** method return types (besides the iterators) never borrow the graph. This means that
+/// we can still safely mutably borrow from the graph whilst we traverse it.
 pub trait Walker<G> {
-    /// Used to represent the edge and node indices.
+    /// The unsigned integer type used for node and edge indices.
     type Index: IndexType;
 
     /// Fetch the `EdgeIndex` and `NodeIndex` to the next neighbour in our walk through the given
@@ -60,13 +58,13 @@ pub trait Walker<G> {
         maybe_last_pair
     }
 
-    /// Walks the whole walk until it reaching and returning the last edge.
+    /// Walks the whole walk until reaching and returning the last edge.
     #[inline]
     fn last_edge(self, graph: &G) -> Option<EdgeIndex<Self::Index>> where Self: Sized {
         self.last(graph).map(|(e, _)| e)
     }
 
-    /// Walks the whole walk until it reaching and returning the last node.
+    /// Walks the whole walk until reaching and returning the last node.
     #[inline]
     fn last_node(self, graph: &G) -> Option<NodeIndex<Self::Index>> where Self: Sized {
         self.last(graph).map(|(_, n)| n)
@@ -95,10 +93,15 @@ pub trait Walker<G> {
 
     /// Produces a walker that will walk the entirey of `self` before walking the entirey of other.
     #[inline]
-    fn chain<O>(self, other: O) -> Chain<Self, O> where Self: Sized {
+    fn chain<O>(self, other: O) -> Chain<G, Self::Index, Self, O>
+        where Self: Sized,
+              O: Walker<G, Index=Self::Index>,
+    {
         Chain {
             a: Some(self),
             b: other,
+            _graph: PhantomData,
+            _index: PhantomData,
         }
     }
 
@@ -121,7 +124,7 @@ pub trait Walker<G> {
         Peekable {
             walker: self,
             maybe_next: None,
-            _graph: ::std::marker::PhantomData,
+            _graph: PhantomData,
         }
     }
 
@@ -154,19 +157,23 @@ pub trait Walker<G> {
     /// Creates a walker that skips the first n steps of this walk, and then yields all further
     /// steps.
     #[inline]
-    fn skip(self, n: usize) -> Skip<Self> where Self: Sized {
+    fn skip(self, n: usize) -> Skip<G, Self::Index, Self> where Self: Sized {
         Skip {
             walker: self,
             to_skip: n,
+            _graph: PhantomData,
+            _index: PhantomData,
         }
     }
 
     /// Creates a walker that yields the first n steps of this walk.
     #[inline]
-    fn take(self, n: usize) -> Take<Self> where Self: Sized {
+    fn take(self, n: usize) -> Take<G, Self::Index, Self> where Self: Sized {
         Take {
             walker: self,
             to_take: n,
+            _graph: PhantomData,
+            _index: PhantomData,
         }
     }
 
@@ -235,11 +242,13 @@ pub trait Walker<G> {
 
     /// Repeats the walker endlessly.
     #[inline]
-    fn cycle(self) -> Cycle<Self> where Self: Clone + Sized {
+    fn cycle(self) -> Cycle<G, Self::Index, Self> where Self: Clone + Sized {
         let clone = self.clone();
         Cycle {
             walker: self,
             clone: clone,
+            _graph: PhantomData,
+            _index: PhantomData,
         }
     }
 
@@ -276,24 +285,28 @@ pub trait Walker<G> {
     ///
     /// The returned iterator borrows the graph.
     #[inline]
-    fn iter(self, graph: &G) -> Iter<G, Self::Index, Self> where Self: Sized {
+    fn iter(self, graph: &G) -> Iter<G, Self::Index, Self>
+        where Self: Sized,
+    {
         Iter {
             walker: self,
             graph: graph,
-            _index: ::std::marker::PhantomData,
+            _index: PhantomData,
         }
     }
 
-    /// Converts the walker into an iterator yielding `(e, n)`, where `e` is the edge weight for
+    /// Converts the walker into an iterator yielding `(&e, &n)`, where `e` is the edge weight for
     /// the next `EdgeIndex` and `n` is the node weight for the next `NodeIndex`.
     ///
     /// The returned iterator borrows the graph.
     #[inline]
-    fn iter_weights(self, graph: &G) -> IterWeights<G, Self::Index, Self> where Self: Sized {
+    fn iter_weights(self, graph: &G) -> IterWeights<G, Self::Index, Self>
+        where Self: Sized,
+    {
         IterWeights {
             walker: self,
             graph: graph,
-            _index: ::std::marker::PhantomData,
+            _index: PhantomData,
         }
     }
 
@@ -302,20 +315,23 @@ pub trait Walker<G> {
 
 /// Walks the entirety of `a` before walking the entirety of `b`.
 #[derive(Clone, Debug)]
-pub struct Chain<A, B> {
+pub struct Chain<G, Ix, A, B> {
     a: Option<A>,
     b: B,
+    _graph: PhantomData<G>,
+    _index: PhantomData<Ix>,
 }
 
 
-impl<G, Ix, A, B> Walker<G> for Chain<A, B>
+impl<G, Ix, A, B> Walker<G> for Chain<G, Ix, A, B>
     where Ix: IndexType,
           A: Walker<G, Index=Ix>,
           B: Walker<G, Index=Ix>,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
-        let Chain { ref mut a, ref mut b } = *self;
+        let Chain { ref mut a, ref mut b, .. } = *self;
         match a.as_mut().and_then(|walker| walker.next(graph)) {
             Some(step) => Some(step),
             None => {
@@ -342,13 +358,14 @@ impl<G, Ix, W, P> Walker<G> for Filter<W, P>
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
-        self.walker.next(graph)
-            .and_then(|(e, n)| if (self.predicate)(graph, e, n) {
-                Some((e, n))
-            } else {
-                None
-            })
+        while let Some((e, n)) = self.walker.next(graph) {
+            if (self.predicate)(graph, e, n) {
+                return Some((e, n));
+            }
+        }
+        None
     }
 }
 
@@ -358,7 +375,7 @@ impl<G, Ix, W, P> Walker<G> for Filter<W, P>
 pub struct Peekable<G, Ix, W> where Ix: IndexType {
     walker: W,
     maybe_next: Option<IndexPair<Ix>>,
-    _graph: ::std::marker::PhantomData<G>,
+    _graph: PhantomData<G>,
 }
 
 
@@ -368,6 +385,7 @@ impl<G, Ix, W> Peekable<G, Ix, W>
 {
 
     /// The edge node index pair of the neighbor at the next step in our walk of the given graph.
+    #[inline]
     pub fn peek(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         self.maybe_next.or_else(|| {
             self.maybe_next = self.walker.next(graph);
@@ -376,11 +394,13 @@ impl<G, Ix, W> Peekable<G, Ix, W>
     }
 
     /// The edge index of the neighbor at the next step in our walk of the given graph.
+    #[inline]
     pub fn peek_edge(&mut self, graph: &G) -> Option<EdgeIndex<Ix>> {
         self.peek(graph).map(|(e, _)| e)
     }
 
     /// The node index of the neighbor at the next step in our walk of the given graph.
+    #[inline]
     pub fn peek_node(&mut self, graph: &G) -> Option<NodeIndex<Ix>> {
         self.peek(graph).map(|(_, n)| n)
     }
@@ -393,9 +413,10 @@ impl<G, Ix, W> Walker<G> for Peekable<G, Ix, W>
           W: Walker<G, Index=Ix>,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         self.maybe_next.take().or_else(|| {
-            self.next(graph)
+            self.walker.next(graph)
         })
     }
 }
@@ -416,6 +437,7 @@ impl<G, Ix, W, P> Walker<G> for SkipWhile<W, P>
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         match self.maybe_predicate.take() {
             Some(mut predicate) => {
@@ -447,6 +469,7 @@ impl<G, Ix, W, P> Walker<G> for TakeWhile<W, P>
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         let TakeWhile { ref mut maybe_walker, ref mut predicate } = *self;
         let maybe_next_idx_pair = maybe_walker.as_mut().and_then(|walker| walker.next(graph));
@@ -464,17 +487,20 @@ impl<G, Ix, W, P> Walker<G> for TakeWhile<W, P>
 
 /// A walker that skips the first n steps of this walk, and then yields all further steps.
 #[derive(Clone, Debug)]
-pub struct Skip<W> {
+pub struct Skip<G, Ix, W> {
     walker: W,
     to_skip: usize,
+    _graph: PhantomData<G>,
+    _index: PhantomData<Ix>,
 }
 
 
-impl<G, Ix, W> Walker<G> for Skip<W>
+impl<G, Ix, W> Walker<G> for Skip<G, Ix, W>
     where Ix: IndexType,
           W: Walker<G, Index=Ix>,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         if self.to_skip > 0 {
             for _ in 0..self.to_skip {
@@ -489,17 +515,20 @@ impl<G, Ix, W> Walker<G> for Skip<W>
 
 /// A walker that yields the first n steps of this walk.
 #[derive(Clone, Debug)]
-pub struct Take<W> {
+pub struct Take<G, Ix, W> {
     walker: W,
     to_take: usize,
+    _graph: PhantomData<G>,
+    _index: PhantomData<Ix>,
 }
 
 
-impl<G, Ix, W> Walker<G> for Take<W>
+impl<G, Ix, W> Walker<G> for Take<G, Ix, W>
     where Ix: IndexType,
           W: Walker<G, Index=Ix>,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         if self.to_take > 0 {
             self.to_take -= 1;
@@ -513,17 +542,20 @@ impl<G, Ix, W> Walker<G> for Take<W>
 
 /// A walker that repeats its internal walker endlessly.
 #[derive(Clone, Debug)]
-pub struct Cycle<W> {
+pub struct Cycle<G, Ix, W> {
     walker: W,
     clone: W,
+    _graph: PhantomData<G>,
+    _index: PhantomData<Ix>,
 }
 
 
-impl<G, Ix, W> Walker<G> for Cycle<W>
+impl<G, Ix, W> Walker<G> for Cycle<G, Ix, W>
     where Ix: IndexType,
           W: Walker<G, Index=Ix> + Clone,
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         self.clone.next(graph).or_else(|| {
             self.clone = self.walker.clone();
@@ -548,6 +580,7 @@ impl<G, Ix, W, F> Walker<G> for Inspect<W, F>
           F: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>),
 {
     type Index = Ix;
+    #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
         self.walker.next(graph).map(|(e, n)| {
             (self.f)(graph, e, n);
@@ -562,18 +595,86 @@ impl<G, Ix, W, F> Walker<G> for Inspect<W, F>
 pub struct Iter<'a, G: 'a, Ix, W> {
     graph: &'a G,
     walker: W,
-    _index: ::std::marker::PhantomData<Ix>,
+    _index: PhantomData<Ix>,
 }
 
+impl<'a, G, Ix, W> Iter<'a, G, Ix, W> {
+
+    /// Convert to an iterator that only yields the edge indices.
+    #[inline]
+    pub fn edges(self) -> IterEdges<'a, G, Ix, W> {
+        let Iter { graph, walker, .. } = self;
+        IterEdges {
+            graph: graph,
+            walker: walker,
+            _index: PhantomData,
+        }
+    }
+
+    /// Convert to an iterator that only yields the node indices.
+    #[inline]
+    pub fn nodes(self) -> IterNodes<'a, G, Ix, W> {
+        let Iter { graph, walker, .. } = self;
+        IterNodes {
+            graph: graph,
+            walker: walker,
+            _index: PhantomData,
+        }
+    }
+
+}
 
 impl<'a, G, Ix, W> Iterator for Iter<'a, G, Ix, W>
     where Ix: IndexType,
           W: Walker<G, Index=Ix>,
 {
     type Item = IndexPair<Ix>;
+    #[inline]
     fn next(&mut self) -> Option<IndexPair<Ix>> {
         let Iter { ref mut walker, ref graph, .. } = *self;
         walker.next(graph)
+    }
+}
+
+
+/// An iterator yielding edge indices produced by its internal walker and graph.
+#[derive(Clone, Debug)]
+pub struct IterEdges<'a, G: 'a, Ix, W> {
+    graph: &'a G,
+    walker: W,
+    _index: PhantomData<Ix>,
+}
+
+impl<'a, G, Ix, W> Iterator for IterEdges<'a, G, Ix, W>
+    where Ix: IndexType,
+          W: Walker<G, Index=Ix>,
+{
+    type Item = EdgeIndex<Ix>;
+    #[inline]
+    fn next(&mut self) -> Option<EdgeIndex<Ix>> {
+        let IterEdges { ref mut walker, ref graph, .. } = *self;
+        walker.next_edge(graph)
+    }
+}
+
+
+/// An iterator yielding node indices produced by its internal walker and graph.
+#[derive(Clone, Debug)]
+pub struct IterNodes<'a, G: 'a, Ix, W> {
+    graph: &'a G,
+    walker: W,
+    _index: PhantomData<Ix>,
+}
+
+impl<'a, G, Ix, W> Iterator for IterNodes<'a, G, Ix, W>
+    where Ix: IndexType,
+          W: Walker<G, Index=Ix>,
+{
+    type Item = NodeIndex<Ix>;
+    #[inline]
+    fn next(&mut self) -> Option<NodeIndex<Ix>> {
+        let IterNodes { ref mut walker, ref graph, .. } = *self;
+        walker.next_node(graph)
     }
 }
 
@@ -584,9 +685,32 @@ impl<'a, G, Ix, W> Iterator for Iter<'a, G, Ix, W>
 pub struct IterWeights<'a, G: 'a, Ix, W> {
     graph: &'a G,
     walker: W,
-    _index: ::std::marker::PhantomData<Ix>,
+    _index: PhantomData<Ix>,
 }
 
+impl<'a, G, Ix, W> IterWeights<'a, G, Ix, W> {
+
+    /// Convert to an iterator yielding only the edge weights.
+    pub fn edges(self) -> IterEdgeWeights<'a, G, Ix, W> {
+        let IterWeights { graph, walker, .. } = self;
+        IterEdgeWeights {
+            graph: graph,
+            walker: walker,
+            _index: PhantomData,
+        }
+    }
+
+    /// Convert to an iterator yielding only the node weights.
+    pub fn nodes(self) -> IterNodeWeights<'a, G, Ix, W> {
+        let IterWeights { graph, walker, .. } = self;
+        IterNodeWeights {
+            graph: graph,
+            walker: walker,
+            _index: PhantomData,
+        }
+    }
+
+}
 
 impl<'a, G, Ix, W> Iterator for IterWeights<'a, G, Ix, W>
     where Ix: IndexType,
@@ -595,9 +719,55 @@ impl<'a, G, Ix, W> Iterator for IterWeights<'a, G, Ix, W>
           G: Index<NodeIndex<Ix>>,
 {
     type Item = (&'a <G as Index<EdgeIndex<Ix>>>::Output, &'a <G as Index<NodeIndex<Ix>>>::Output);
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let IterWeights { ref mut walker, ref graph, .. } = *self;
         walker.next(graph).map(|(e, n)| (&graph[e], &graph[n]))
     }
 }
 
+
+/// An iterator yielding edge weights associated with the indices produced by its internal walker
+/// and graph.
+#[derive(Clone, Debug)]
+pub struct IterEdgeWeights<'a, G: 'a, Ix, W> {
+    graph: &'a G,
+    walker: W,
+    _index: PhantomData<Ix>,
+}
+
+impl<'a, G, Ix, W> Iterator for IterEdgeWeights<'a, G, Ix, W>
+    where Ix: IndexType,
+          W: Walker<G, Index=Ix>,
+          G: Index<EdgeIndex<Ix>>,
+{
+    type Item = &'a <G as Index<EdgeIndex<Ix>>>::Output;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let IterEdgeWeights { ref mut walker, ref graph, .. } = *self;
+        walker.next_edge(graph).map(|e| &graph[e])
+    }
+}
+
+
+/// An iterator yielding node weights associated with the indices produced by its internal walker
+/// and graph.
+#[derive(Clone, Debug)]
+pub struct IterNodeWeights<'a, G: 'a, Ix, W> {
+    graph: &'a G,
+    walker: W,
+    _index: PhantomData<Ix>,
+}
+
+impl<'a, G, Ix, W> Iterator for IterNodeWeights<'a, G, Ix, W>
+    where Ix: IndexType,
+          W: Walker<G, Index=Ix>,
+          G: Index<NodeIndex<Ix>>,
+{
+    type Item = &'a <G as Index<NodeIndex<Ix>>>::Output;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let IterNodeWeights { ref mut walker, ref graph, .. } = *self;
+        walker.next_node(graph).map(|n| &graph[n])
+    }
+}

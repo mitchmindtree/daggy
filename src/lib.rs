@@ -1,4 +1,3 @@
-//! 
 //! **daggy** is a directed acyclic graph data structure library.
 //!
 //! The most prominent type is [**Dag**](./struct.Dag.html) - a wrapper around [petgraph]
@@ -7,6 +6,10 @@
 //! data structure, exposing a refined API targeted towards directed acyclic graph related
 //! functionality.
 //!
+//! The [**Walker** trait](./walker/trait.Walker.html) defines a variety of useful methods for
+//! traversing any graph type. Its methods behave similarly to iterator types, however **Walker**s
+//! do not require borrowing the graph. This means that we can still safely mutably borrow from the
+//! graph whilst we traverse it.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -17,8 +20,12 @@ extern crate petgraph as pg;
 
 pub use pg as petgraph;
 pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
+pub use walker::Walker;
 use pg::graph::{DefIndex, GraphIndex, IndexType};
 use std::ops::{Index, IndexMut};
+
+
+pub mod walker;
 
 
 /// The Petgraph to be used internally within the Dag for storing/managing nodes and edges.
@@ -58,20 +65,14 @@ pub struct Dag<N, E, Ix: IndexType = DefIndex> {
 }
 
 
-/// An iterator yielding indices to the children of some node.
-pub type Children<'a, E, Ix> = pg::graph::Neighbors<'a, E, Ix>;
-
 /// A "walker" object that can be used to step through the children of some parent node.
-pub struct WalkChildren<Ix: IndexType> {
+pub struct Children<Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
 }
 
 
-/// An iterator yielding indices to the parents of some node.
-pub type Parents<'a, E, Ix> = pg::graph::Neighbors<'a, E, Ix>;
-
 /// A "walker" object that can be used to step through the children of some parent node.
-pub struct WalkParents<Ix: IndexType> {
+pub struct Parents<Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
 }
 
@@ -402,38 +403,32 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         self.graph.remove_edge(e)
     }
 
-    /// An iterator over all nodes that are parents to the node at the given index.
+    /// A **Walker** type that may be used to step through the parents of the given child node.
     ///
-    /// The returned iterator yields `NodeIndex<Ix>`s.
+    /// Unlike iterator types, **Walker**s do not require borrowing the internal **Graph**. This
+    /// makes them useful for traversing the **Graph** while still being able to mutably borrow it.
     ///
-    /// Produces an empty iterator if there is no node at the given index.
-    pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<E, Ix> {
-        self.graph.neighbors_directed(child, pg::Incoming)
-    }
-
-    /// A "walker" object that may be used to step through the parents of the given child node.
+    /// If you require an iterator, use one of the **Walker** methods for converting this
+    /// **Walker** into a similarly behaving **Iterator** type.
     ///
-    /// Unlike the `Parents` type, `WalkParents` does not borrow the `Dag`'s `PetGraph`.
-    pub fn walk_parents(&self, child: NodeIndex<Ix>) -> WalkParents<Ix> {
+    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<Ix> {
         let walk_edges = self.graph.walk_edges_directed(child, pg::Incoming);
-        WalkParents { walk_edges: walk_edges }
-    }
-
-    /// An iterator over all nodes that are children to the node at the given index.
-    ///
-    /// The returned iterator yields `NodeIndex<Ix>`s.
-    ///
-    /// Produces an empty iterator if there is no node at the given index.
-    pub fn children(&self, parent: NodeIndex<Ix>) -> Children<E, Ix> {
-        self.graph.neighbors_directed(parent, pg::Outgoing)
+        Parents { walk_edges: walk_edges }
     }
 
     /// A "walker" object that may be used to step through the children of the given parent node.
     ///
-    /// Unlike the `Children` type, `WalkChildren` does not borrow the `Dag`'s `PetGraph`.
-    pub fn walk_children(&self, parent: NodeIndex<Ix>) -> WalkChildren<Ix> {
+    /// Unlike iterator types, **Walker**s do not require borrowing the internal **Graph**. This
+    /// makes them useful for traversing the **Graph** while still being able to mutably borrow it.
+    ///
+    /// If you require an iterator, use one of the **Walker** methods for converting this
+    /// **Walker** into a similarly behaving **Iterator** type.
+    ///
+    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    pub fn children(&self, parent: NodeIndex<Ix>) -> Children<Ix> {
         let walk_edges = self.graph.walk_edges_directed(parent, pg::Outgoing);
-        WalkChildren { walk_edges: walk_edges }
+        Children { walk_edges: walk_edges }
     }
 
 }
@@ -466,37 +461,46 @@ impl<N, E, Ix> IndexMut<EdgeIndex<Ix>> for Dag<N, E, Ix> where Ix: IndexType {
 }
 
 
-impl<Ix> WalkChildren<Ix> where Ix: IndexType {
-
-    /// Fetch the next child edge index in the walk for the given `Dag`.
-    pub fn next<N, E>(&mut self, dag: &Dag<N, E, Ix>) -> Option<EdgeIndex<Ix>> {
-        self.walk_edges.next(&dag.graph)
-    }
-
-    /// Fetch the `EdgeIndex` and `NodeIndex` to the next child in the walk for the given `Dag`.
-    pub fn next_child<N, E>(&mut self, dag: &Dag<N, E, Ix>)
-        -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)>
-    {
+impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Children<Ix>
+    where Ix: IndexType,
+{
+    type Index = Ix;
+    #[inline]
+    fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
         self.walk_edges.next_neighbor(&dag.graph)
     }
-
 }
 
-impl<Ix> WalkParents<Ix> where Ix: IndexType {
-
-    /// Fetch the next parent edge index in the walk for the given `Dag`.
-    pub fn next<N, E>(&mut self, dag: &Dag<N, E, Ix>) -> Option<EdgeIndex<Ix>> {
-        self.walk_edges.next(&dag.graph)
+impl<N, E, Ix> Walker<PetGraph<N, E, Ix>> for Children<Ix>
+    where Ix: IndexType,
+{
+    type Index = Ix;
+    #[inline]
+    fn next(&mut self, graph: &PetGraph<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
+        self.walk_edges.next_neighbor(&graph)
     }
+}
 
-    /// Fetch the `EdgeIndex` and `NodeIndex` to the next parent in the walk for the given `Dag`.
-    pub fn next_parent<N, E>(&mut self, dag: &Dag<N, E, Ix>)
-        -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)>
-    {
+impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Parents<Ix>
+    where Ix: IndexType,
+{
+    type Index = Ix;
+    #[inline]
+    fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
         self.walk_edges.next_neighbor(&dag.graph)
     }
-
 }
+
+impl<N, E, Ix> Walker<PetGraph<N, E, Ix>> for Parents<Ix>
+    where Ix: IndexType,
+{
+    type Index = Ix;
+    #[inline]
+    fn next(&mut self, graph: &PetGraph<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
+        self.walk_edges.next_neighbor(&graph)
+    }
+}
+
 
 impl<Ix> Iterator for EdgeIndices<Ix> where Ix: IndexType {
     type Item = EdgeIndex<Ix>;
