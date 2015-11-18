@@ -321,6 +321,47 @@ pub trait Walker {
 }
 
 
+/// Recursively walks a graph using the recursive function `recursive_fn`.
+#[derive(Clone, Debug)]
+pub struct Recursive<G, Ix, F> {
+    next: NodeIndex<Ix>,
+    recursive_fn: F,
+    _graph: PhantomData<G>,
+}
+
+impl<G, Ix, F> Recursive<G, Ix, F> {
+
+    /// Construct a new **Recursive** **Walker** starting from the node at the given index.
+    pub fn new(start: NodeIndex<Ix>, recursive_fn: F) -> Self
+        where Ix: IndexType,
+              F: FnMut(&G, NodeIndex<Ix>) -> Option<IndexPair<Ix>>,
+    {
+        Recursive {
+            next: start,
+            recursive_fn: recursive_fn,
+            _graph: PhantomData,
+        }
+    }
+
+}
+
+impl<G, Ix, F> Walker for Recursive<G, Ix, F>
+    where Ix: IndexType,
+          F: FnMut(&G, NodeIndex<Ix>) -> Option<IndexPair<Ix>>,
+{
+    type Graph = G;
+    type Index = Ix;
+    #[inline]
+    fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
+        let Recursive { ref mut next, ref mut recursive_fn, .. } = *self;
+        recursive_fn(graph, *next).map(|(e, n)| {
+            *next = n;
+            (e, n)
+        })
+    }
+}
+
+
 /// Walks the entirety of `a` before walking the entirety of `b`.
 #[derive(Clone, Debug)]
 pub struct Chain<G, Ix, A, B> {

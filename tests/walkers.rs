@@ -290,3 +290,18 @@ fn fold() {
     assert_eq!(12, dag.children(parent).fold(0, &dag, |acc, g, e, n| acc + g[e] + g[n]));
 }
 
+
+#[test]
+fn recursive_walk() {
+    let mut dag = Dag::<i32, i32>::new();
+    let grand_parent = dag.add_node(0);
+    let (_, parent) = dag.add_child(grand_parent, 0, 0);
+    let (_, child) = dag.add_child(parent, 0, 0);
+
+    let mut parent_recursion = dag.recursive_walk(child, |g, n| {
+        g.parents(n).find(g, |g, e, n| g[e] == 0 && g[n] == 0)
+    });
+    assert_eq!(Some(parent), parent_recursion.next_node(&dag));
+    assert_eq!(Some(grand_parent), parent_recursion.next_node(&dag));
+    assert_eq!(None, parent_recursion.next(&dag));
+}
