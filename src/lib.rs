@@ -66,7 +66,7 @@ pub struct Dag<N, E, Ix: IndexType = DefIndex> {
 }
 
 
-/// A "walker" object that can be used to step through the children of some parent node.
+/// A **Walker** type that can be used to step through the children of some parent node.
 pub struct Children<N, E, Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
     _node: PhantomData<N>,
@@ -74,19 +74,21 @@ pub struct Children<N, E, Ix: IndexType> {
 }
 
 
-/// A "walker" object that can be used to step through the children of some parent node.
+/// A **Walker** type that can be used to step through the children of some parent node.
 pub struct Parents<N, E, Ix: IndexType> {
     walk_edges: pg::graph::WalkEdges<Ix>,
     _node: PhantomData<N>,
     _edge: PhantomData<E>,
 }
 
-
 /// An iterator yielding multiple `EdgeIndex`s, returned by the `Graph::add_edges` method.
 pub struct EdgeIndices<Ix: IndexType> {
     indices: ::std::ops::Range<usize>,
     _phantom: PhantomData<Ix>,
 }
+
+/// An alias to simplify the **Recursive** **Walker** type returned by **Dag**.
+pub type RecursiveWalk<N, E, Ix, F> = walker::Recursive<Dag<N, E, Ix>, Ix, F>;
 
 
 /// An error returned by the `Dag::add_edge` method in the case that adding an edge would have
@@ -176,7 +178,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// some other node, consider using the [add_child](./struct.Dag.html#method.add_child) or
     /// [add_parent](./struct.Dag.html#method.add_parent) methods instead for better performance.
     ///
-    /// **Panics if the Graph is at the maximum number of nodes for its index type.
+    /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
@@ -224,7 +226,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///  (./struct.Dag.html#method.add_parent) methods instead for better performance. These
     ///  perform better as there is no need to check for cycles.
     ///
-    /// **Panics if the Graph is at the maximum number of nodes for its index type.
+    /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>> where
         I: ::std::iter::IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
     {
@@ -442,6 +444,16 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
             _node: PhantomData,
             _edge: PhantomData,
         }
+    }
+
+    /// A **Walker** type that recursively walks the **Dag** using the given `recursive_fn`.
+    ///
+    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    pub fn recursive_walk<F>(&self, start: NodeIndex<Ix>, recursive_fn: F)
+        -> RecursiveWalk<N, E, Ix, F>
+        where F: FnMut(&Self, NodeIndex<Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)>
+    {
+        walker::Recursive::new(start, recursive_fn)
     }
 
 }
