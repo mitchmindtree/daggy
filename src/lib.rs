@@ -178,7 +178,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// some other node, consider using the [add_child](./struct.Dag.html#method.add_child) or
     /// [add_parent](./struct.Dag.html#method.add_parent) methods instead for better performance.
     ///
-    /// **Panics if the Graph is at the maximum number of nodes for its index type.
+    /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
@@ -226,7 +226,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///  (./struct.Dag.html#method.add_parent) methods instead for better performance. These
     ///  perform better as there is no need to check for cycles.
     ///
-    /// **Panics if the Graph is at the maximum number of nodes for its index type.
+    /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>> where
         I: ::std::iter::IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
     {
