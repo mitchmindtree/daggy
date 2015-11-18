@@ -184,10 +184,16 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     {
         let idx = self.graph.add_edge(a, b, weight);
 
+        // Is our parent *a* has no parents or our child *b* has no children, we know that the
+        // graph cannot cycle.
+        if self.parents(a).next().is_none() || self.children(b).next().is_none() {
+            Ok(idx)
+
         // Check if adding the edge has created a cycle.
+        //
         // TODO: Once petgraph adds support for re-using visit stack/maps, use that so that we
         // don't have to re-allocate every time `add_edge` is called.
-        if pg::algo::is_cyclic_directed(&self.graph) {
+        } else if pg::algo::is_cyclic_directed(&self.graph) {
             let weight = self.graph.remove_edge(idx).expect("No edge for index");
             Err(WouldCycle(weight))
         } else {
