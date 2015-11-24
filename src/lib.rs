@@ -486,10 +486,9 @@ impl<N, E, Ix> IndexMut<EdgeIndex<Ix>> for Dag<N, E, Ix> where Ix: IndexType {
 }
 
 
-impl<N, E, Ix> Walker for Children<N, E, Ix>
+impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Children<N, E, Ix>
     where Ix: IndexType,
 {
-    type Graph = Dag<N, E, Ix>;
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
@@ -497,10 +496,9 @@ impl<N, E, Ix> Walker for Children<N, E, Ix>
     }
 }
 
-impl<N, E, Ix> Walker for Parents<N, E, Ix>
+impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Parents<N, E, Ix>
     where Ix: IndexType,
 {
-    type Graph = Dag<N, E, Ix>;
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
@@ -515,6 +513,7 @@ impl<Ix> Iterator for EdgeIndices<Ix> where Ix: IndexType {
         self.indices.next().map(|i| EdgeIndex::new(i))
     }
 }
+
 
 impl<E> ::std::fmt::Display for WouldCycle<E> where E: ::std::fmt::Debug {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
