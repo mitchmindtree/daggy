@@ -166,10 +166,9 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     /// If adding the edge **would** cause the graph to cycle, the edge will not be added and
     /// instead a `WouldCycle<E>` error with the given weight will be returned.
     ///
-    /// Computes in **O(t)** time where "t" is the time taken to check if adding the edge would
-    /// cause a cycle in the graph. See petgraph's [`is_cyclic_directed`]
+    /// In the worst case, petgraph's [`is_cyclic_directed`]
     /// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/algo/fn.is_cyclic_directed.html)
-    /// function for more details.
+    /// function is used to check whether or not adding the edge would create a cycle.
     ///
     /// **Note:** Dag allows adding parallel ("duplicate") edges. If you want to avoid this, use
     /// [`update_edge`](./struct.Dag.html#method.update_edge) instead.
@@ -196,6 +195,8 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         } else if pg::algo::is_cyclic_directed(&self.graph) {
             let weight = self.graph.remove_edge(idx).expect("No edge for index");
             Err(WouldCycle(weight))
+
+        // If no cycles were found, we're done.
         } else {
             Ok(idx)
         }
