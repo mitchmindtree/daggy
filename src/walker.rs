@@ -824,4 +824,3 @@ impl<'a, G, Ix, W> Iterator for IterNodeWeights<'a, G, Ix, W>
         walker.next_node(graph).map(|n| &graph[n])
     }
 }
-

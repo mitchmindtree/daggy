@@ -292,6 +292,16 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         self.graph.find_edge(a, b)
     }
 
+    /// Access the parent and child nodes for the given `EdgeIndex`.
+    pub fn edge_endpoints(&self, e: EdgeIndex<Ix>) -> Option<(NodeIndex<Ix>, NodeIndex<Ix>)> {
+        self.graph.edge_endpoints(e)
+    }
+
+    /// Remove all edges.
+    pub fn clear_edges(&mut self) {
+        self.graph.clear_edges()
+    }
+
     /// Add a new edge and parent node to the node at the given `NodeIndex`.
     /// Returns both the edge's `EdgeIndex` and the node's `NodeIndex`.
     ///
@@ -526,5 +536,3 @@ impl<E> ::std::error::Error for WouldCycle<E> where E: ::std::fmt::Debug + ::std
         "Adding this input would have caused the graph to cycle!"
     }
 }
-
-
