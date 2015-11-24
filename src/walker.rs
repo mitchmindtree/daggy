@@ -11,38 +11,36 @@ use std::ops::Index;
 pub type IndexPair<Ix> = (EdgeIndex<Ix>, NodeIndex<Ix>);
 
 
-/// A trait providing a variety of useful methods for traversing some graph type `G`.
+/// A trait providing a variety of useful methods for traversing some graph type **G**.
 ///
 /// **Walker** can be likened to the std **Iterator** trait. It's methods behave similarly, but it
 /// is different in that it takes a reference to some graph as an argument to its "next" method.
 ///
 /// **Walker** method return types (besides the iterators) never borrow the graph. This means that
 /// we can still safely mutably borrow from the graph whilst we traverse it.
-pub trait Walker {
-    /// The graph type that the Walker can walk.
-    type Graph;
+pub trait Walker<G> {
     /// The unsigned integer type used for node and edge indices.
     type Index: IndexType;
 
     /// Fetch the `EdgeIndex` and `NodeIndex` to the next neighbour in our walk through the given
     /// **Graph**.
-    fn next(&mut self, graph: &Self::Graph) -> Option<IndexPair<Self::Index>>;
+    fn next(&mut self, graph: &G) -> Option<IndexPair<Self::Index>>;
 
     /// The next edge in our walk for the given **Graph**.
     #[inline]
-    fn next_edge(&mut self, graph: &Self::Graph) -> Option<EdgeIndex<Self::Index>> {
+    fn next_edge(&mut self, graph: &G) -> Option<EdgeIndex<Self::Index>> {
         self.next(graph).map(|(e, _)| e)
     }
 
     /// The next node in our walk for the given **Graph**.
     #[inline]
-    fn next_node(&mut self, graph: &Self::Graph) -> Option<NodeIndex<Self::Index>> {
+    fn next_node(&mut self, graph: &G) -> Option<NodeIndex<Self::Index>> {
         self.next(graph).map(|(_, n)| n)
     }
 
     /// Counts all the steps in the entire walk of the given graph.
     #[inline]
-    fn count(mut self, graph: &Self::Graph) -> usize where Self: Sized {
+    fn count(mut self, graph: &G) -> usize where Self: Sized {
         let mut count = 0;
         while let Some(_) = self.next(graph) {
             count += 1;
@@ -52,7 +50,7 @@ pub trait Walker {
 
     /// Walks the whole walk until reaching and returning the last edge node pair.
     #[inline]
-    fn last(mut self, graph: &Self::Graph) -> Option<IndexPair<Self::Index>> where Self: Sized {
+    fn last(mut self, graph: &G) -> Option<IndexPair<Self::Index>> where Self: Sized {
         let mut maybe_last_pair = None;
         while let Some(pair) = self.next(graph) {
             maybe_last_pair = Some(pair);
@@ -62,19 +60,19 @@ pub trait Walker {
 
     /// Walks the whole walk until reaching and returning the last edge.
     #[inline]
-    fn last_edge(self, graph: &Self::Graph) -> Option<EdgeIndex<Self::Index>> where Self: Sized {
+    fn last_edge(self, graph: &G) -> Option<EdgeIndex<Self::Index>> where Self: Sized {
         self.last(graph).map(|(e, _)| e)
     }
 
     /// Walks the whole walk until reaching and returning the last node.
     #[inline]
-    fn last_node(self, graph: &Self::Graph) -> Option<NodeIndex<Self::Index>> where Self: Sized {
+    fn last_node(self, graph: &G) -> Option<NodeIndex<Self::Index>> where Self: Sized {
         self.last(graph).map(|(_, n)| n)
     }
 
     /// Walks "n" number of steps and produces the resulting edge node pair.
     #[inline]
-    fn nth(mut self, graph: &Self::Graph, n: usize) -> Option<IndexPair<Self::Index>>
+    fn nth(mut self, graph: &G, n: usize) -> Option<IndexPair<Self::Index>>
         where Self: Sized
     {
         (0..n+1)
@@ -85,7 +83,7 @@ pub trait Walker {
 
     /// Walks "n" number of steps and produces the resulting edge.
     #[inline]
-    fn nth_edge(self, graph: &Self::Graph, n: usize) -> Option<EdgeIndex<Self::Index>>
+    fn nth_edge(self, graph: &G, n: usize) -> Option<EdgeIndex<Self::Index>>
         where Self: Sized
     {
         self.nth(graph, n).map(|(e, _)| e)
@@ -93,7 +91,7 @@ pub trait Walker {
 
     /// Walks "n" number of steps and produces the resulting node.
     #[inline]
-    fn nth_node(self, graph: &Self::Graph, n: usize) -> Option<NodeIndex<Self::Index>>
+    fn nth_node(self, graph: &G, n: usize) -> Option<NodeIndex<Self::Index>>
         where Self: Sized
     {
         self.nth(graph, n).map(|(_, n)| n)
@@ -101,9 +99,9 @@ pub trait Walker {
 
     /// Produces a walker that will walk the entirey of `self` before walking the entirey of other.
     #[inline]
-    fn chain<O>(self, other: O) -> Chain<Self::Graph, Self::Index, Self, O>
+    fn chain<O>(self, other: O) -> Chain<G, Self::Index, Self, O>
         where Self: Sized,
-              O: Walker<Graph=Self::Graph, Index=Self::Index>,
+              O: Walker<G, Index=Self::Index>,
     {
         Chain {
             a: Some(self),
@@ -118,7 +116,7 @@ pub trait Walker {
     #[inline]
     fn filter<P>(self, predicate: P) -> Filter<Self, P>
         where Self: Sized,
-              P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
+              P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
     {
         Filter {
             walker: self,
@@ -128,7 +126,7 @@ pub trait Walker {
 
     /// Creates a walker that has a `.peek(&graph)` method that returns an optional next neighbor.
     #[inline]
-    fn peekable(self) -> Peekable<Self::Graph, Self::Index, Self> where Self: Sized {
+    fn peekable(self) -> Peekable<G, Self::Index, Self> where Self: Sized {
         Peekable {
             walker: self,
             maybe_next: None,
@@ -141,7 +139,7 @@ pub trait Walker {
     #[inline]
     fn skip_while<P>(self, predicate: P) -> SkipWhile<Self, P>
         where Self: Sized,
-              P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
+              P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
     {
         SkipWhile {
             walker: self,
@@ -154,7 +152,7 @@ pub trait Walker {
     #[inline]
     fn take_while<P>(self, predicate: P) -> TakeWhile<Self, P>
         where Self: Sized,
-              P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
+              P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
     {
         TakeWhile {
             maybe_walker: Some(self),
@@ -165,7 +163,7 @@ pub trait Walker {
     /// Creates a walker that skips the first n steps of this walk, and then yields all further
     /// steps.
     #[inline]
-    fn skip(self, n: usize) -> Skip<Self::Graph, Self::Index, Self> where Self: Sized {
+    fn skip(self, n: usize) -> Skip<G, Self::Index, Self> where Self: Sized {
         Skip {
             walker: self,
             to_skip: n,
@@ -176,7 +174,7 @@ pub trait Walker {
 
     /// Creates a walker that yields the first n steps of this walk.
     #[inline]
-    fn take(self, n: usize) -> Take<Self::Graph, Self::Index, Self> where Self: Sized {
+    fn take(self, n: usize) -> Take<G, Self::Index, Self> where Self: Sized {
         Take {
             walker: self,
             to_take: n,
@@ -187,8 +185,8 @@ pub trait Walker {
 
     /// Tests whether the predicate holds true for all steps in the walk.
     #[inline]
-    fn all<P>(&mut self, graph: &Self::Graph, mut predicate: P) -> bool
-        where P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
+    fn all<P>(&mut self, graph: &G, mut predicate: P) -> bool
+        where P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
     {
         while let Some((e, n)) = self.next(graph) {
             if !predicate(graph, e, n) {
@@ -202,8 +200,8 @@ pub trait Walker {
     ///
     /// Does not step the walker past the first found step.
     #[inline]
-    fn any<P>(&mut self, graph: &Self::Graph, mut predicate: P) -> bool
-        where P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
+    fn any<P>(&mut self, graph: &G, mut predicate: P) -> bool
+        where P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool,
     {
         while let Some((e, n)) = self.next(graph) {
             if predicate(graph, e, n) {
@@ -217,8 +215,8 @@ pub trait Walker {
     /// 
     /// Does not consume the walker past the first found step.
     #[inline]
-    fn find<P>(&mut self, graph: &Self::Graph, mut predicate: P) -> Option<IndexPair<Self::Index>>
-        where P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
+    fn find<P>(&mut self, graph: &G, mut predicate: P) -> Option<IndexPair<Self::Index>>
+        where P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
     {
         while let Some((e, n)) = self.next(graph) {
             if predicate(graph, e, n) {
@@ -232,8 +230,8 @@ pub trait Walker {
     /// 
     /// Does not consume the walker past the first found step.
     #[inline]
-    fn find_edge<P>(&mut self, graph: &Self::Graph, predicate: P) -> Option<EdgeIndex<Self::Index>>
-        where P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
+    fn find_edge<P>(&mut self, graph: &G, predicate: P) -> Option<EdgeIndex<Self::Index>>
+        where P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
     {
         self.find(graph, predicate).map(|(e, _)| e)
     }
@@ -242,15 +240,15 @@ pub trait Walker {
     /// 
     /// Does not consume the walker past the first found step.
     #[inline]
-    fn find_node<P>(&mut self, graph: &Self::Graph, predicate: P) -> Option<NodeIndex<Self::Index>>
-        where P: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
+    fn find_node<P>(&mut self, graph: &G, predicate: P) -> Option<NodeIndex<Self::Index>>
+        where P: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> bool
     {
         self.find(graph, predicate).map(|(_, n)| n)
     }
 
     /// Repeats the walker endlessly.
     #[inline]
-    fn cycle(self) -> Cycle<Self::Graph, Self::Index, Self> where Self: Clone + Sized {
+    fn cycle(self) -> Cycle<G, Self::Index, Self> where Self: Clone + Sized {
         let clone = self.clone();
         Cycle {
             walker: self,
@@ -265,9 +263,9 @@ pub trait Walker {
     /// 
     /// This operation is sometimes called 'reduce' or 'inject'.
     #[inline]
-    fn fold<B, F>(mut self, init: B, graph: &Self::Graph, mut f: F) -> B
+    fn fold<B, F>(mut self, init: B, graph: &G, mut f: F) -> B
         where Self: Sized,
-              F: FnMut(B, &Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> B
+              F: FnMut(B, &G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>) -> B
     {
         let mut accum = init;
         while let Some((e, n)) = self.next(graph) {
@@ -281,7 +279,7 @@ pub trait Walker {
     #[inline]
     fn inspect<F>(self, f: F) -> Inspect<Self, F>
         where Self: Sized,
-              F: FnMut(&Self::Graph, EdgeIndex<Self::Index>, NodeIndex<Self::Index>),
+              F: FnMut(&G, EdgeIndex<Self::Index>, NodeIndex<Self::Index>),
     {
         Inspect {
             walker: self,
@@ -293,7 +291,7 @@ pub trait Walker {
     ///
     /// The returned iterator borrows the graph.
     #[inline]
-    fn iter(self, graph: &Self::Graph) -> Iter<Self::Graph, Self::Index, Self>
+    fn iter(self, graph: &G) -> Iter<G, Self::Index, Self>
         where Self: Sized,
     {
         Iter {
@@ -308,7 +306,7 @@ pub trait Walker {
     ///
     /// The returned iterator borrows the graph.
     #[inline]
-    fn iter_weights(self, graph: &Self::Graph) -> IterWeights<Self::Graph, Self::Index, Self>
+    fn iter_weights(self, graph: &G) -> IterWeights<G, Self::Index, Self>
         where Self: Sized,
     {
         IterWeights {
@@ -319,6 +317,13 @@ pub trait Walker {
     }
 
 }
+
+
+// /// The **Walker** synonym to the **std::iter::once** function.
+// ///
+// /// Returns a walker that takes just one step, yielding the given index pair.
+// pub fn once<Ix>(e: EdgeIndex<Ix>, n: NodeIndex<Ix>) -> Once<Ix> {
+// }
 
 
 /// Recursively walks a graph using the recursive function `recursive_fn`.
@@ -345,11 +350,10 @@ impl<G, Ix, F> Recursive<G, Ix, F> {
 
 }
 
-impl<G, Ix, F> Walker for Recursive<G, Ix, F>
+impl<G, Ix, F> Walker<G> for Recursive<G, Ix, F>
     where Ix: IndexType,
           F: FnMut(&G, NodeIndex<Ix>) -> Option<IndexPair<Ix>>,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -372,12 +376,11 @@ pub struct Chain<G, Ix, A, B> {
 }
 
 
-impl<G, Ix, A, B> Walker for Chain<G, Ix, A, B>
+impl<G, Ix, A, B> Walker<G> for Chain<G, Ix, A, B>
     where Ix: IndexType,
-          A: Walker<Graph=G, Index=Ix>,
-          B: Walker<Graph=G, Index=Ix>,
+          A: Walker<G, Index=Ix>,
+          B: Walker<G, Index=Ix>,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -402,12 +405,11 @@ pub struct Filter<W, P> {
 }
 
 
-impl<G, Ix, W, P> Walker for Filter<W, P>
+impl<G, Ix, W, P> Walker<G> for Filter<W, P>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -432,7 +434,7 @@ pub struct Peekable<G, Ix, W> where Ix: IndexType {
 
 impl<G, Ix, W> Peekable<G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
 
     /// The edge node index pair of the neighbor at the next step in our walk of the given graph.
@@ -459,11 +461,10 @@ impl<G, Ix, W> Peekable<G, Ix, W>
 }
 
 
-impl<G, Ix, W> Walker for Peekable<G, Ix, W>
+impl<G, Ix, W> Walker<G> for Peekable<G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -483,12 +484,11 @@ pub struct SkipWhile<W, P> {
 }
 
 
-impl<G, Ix, W, P> Walker for SkipWhile<W, P>
+impl<G, Ix, W, P> Walker<G> for SkipWhile<W, P>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -516,12 +516,11 @@ pub struct TakeWhile<W, P> {
 }
 
 
-impl<G, Ix, W, P> Walker for TakeWhile<W, P>
+impl<G, Ix, W, P> Walker<G> for TakeWhile<W, P>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           P: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>) -> bool,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -549,11 +548,10 @@ pub struct Skip<G, Ix, W> {
 }
 
 
-impl<G, Ix, W> Walker for Skip<G, Ix, W>
+impl<G, Ix, W> Walker<G> for Skip<G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -578,11 +576,10 @@ pub struct Take<G, Ix, W> {
 }
 
 
-impl<G, Ix, W> Walker for Take<G, Ix, W>
+impl<G, Ix, W> Walker<G> for Take<G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -606,11 +603,10 @@ pub struct Cycle<G, Ix, W> {
 }
 
 
-impl<G, Ix, W> Walker for Cycle<G, Ix, W>
+impl<G, Ix, W> Walker<G> for Cycle<G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix> + Clone,
+          W: Walker<G, Index=Ix> + Clone,
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -631,12 +627,11 @@ pub struct Inspect<W, F> {
 }
 
 
-impl<G, Ix, W, F> Walker for Inspect<W, F>
+impl<G, Ix, W, F> Walker<G> for Inspect<W, F>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           F: FnMut(&G, EdgeIndex<Ix>, NodeIndex<Ix>),
 {
-    type Graph = G;
     type Index = Ix;
     #[inline]
     fn next(&mut self, graph: &G) -> Option<IndexPair<Ix>> {
@@ -684,7 +679,7 @@ impl<'a, G, Ix, W> Iter<'a, G, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for Iter<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
     type Item = IndexPair<Ix>;
     #[inline]
@@ -705,7 +700,7 @@ pub struct IterEdges<'a, G: 'a, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for IterEdges<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
     type Item = EdgeIndex<Ix>;
     #[inline]
@@ -726,7 +721,7 @@ pub struct IterNodes<'a, G: 'a, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for IterNodes<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
 {
     type Item = NodeIndex<Ix>;
     #[inline]
@@ -772,7 +767,7 @@ impl<'a, G, Ix, W> IterWeights<'a, G, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for IterWeights<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           G: Index<EdgeIndex<Ix>>,
           G: Index<NodeIndex<Ix>>,
 {
@@ -796,7 +791,7 @@ pub struct IterEdgeWeights<'a, G: 'a, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for IterEdgeWeights<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           G: Index<EdgeIndex<Ix>>,
 {
     type Item = &'a <G as Index<EdgeIndex<Ix>>>::Output;
@@ -819,7 +814,7 @@ pub struct IterNodeWeights<'a, G: 'a, Ix, W> {
 
 impl<'a, G, Ix, W> Iterator for IterNodeWeights<'a, G, Ix, W>
     where Ix: IndexType,
-          W: Walker<Graph=G, Index=Ix>,
+          W: Walker<G, Index=Ix>,
           G: Index<NodeIndex<Ix>>,
 {
     type Item = &'a <G as Index<NodeIndex<Ix>>>::Output;
@@ -829,3 +824,4 @@ impl<'a, G, Ix, W> Iterator for IterNodeWeights<'a, G, Ix, W>
         walker.next_node(graph).map(|n| &graph[n])
     }
 }
+
