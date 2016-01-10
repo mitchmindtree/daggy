@@ -229,7 +229,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>> where
-        I: ::std::iter::IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
+        I: IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
     {
         let mut num_edges = 0;
         let mut should_check_for_cycle = false;
