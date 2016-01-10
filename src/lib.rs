@@ -182,12 +182,14 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
+        let should_check_for_cycle = must_check_for_cycle(self, a, b);
+
         let idx = self.graph.add_edge(a, b, weight);
 
         // Check if adding the edge has created a cycle.
         //
         // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
-        if must_check_for_cycle(self, a, b, idx) && pg::algo::is_cyclic_directed(&self.graph) {
+        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph) {
             let weight = self.graph.remove_edge(idx).expect("No edge for index");
             Err(WouldCycle(weight))
 
@@ -235,15 +237,14 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         let mut should_check_for_cycle = false;
 
         for (a, b, weight) in edges {
-            let idx = self.graph.add_edge(a, b, weight);
-
-            // For every added edge, we must check whether or not we need to check for cycles.
+            // Check whether or not we'll need to check for cycles.
             if !should_check_for_cycle {
-                if must_check_for_cycle(self, a, b, idx) {
+                if must_check_for_cycle(self, a, b) {
                     should_check_for_cycle = true;
                 }
             }
 
+            self.graph.add_edge(a, b, weight);
             num_edges += 1;
         }
 
@@ -485,14 +486,11 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
 /// 
 /// If our parent *a* has no parents or our child *b* has no children, or if there was already an
 /// edge connecting *a* to *b*, we know that adding this edge has not caused the graph to cycle.
-fn must_check_for_cycle<N, E, Ix>(dag: &Dag<N, E, Ix>,
-                                  a: NodeIndex<Ix>,
-                                  b: NodeIndex<Ix>,
-                                  new_edge: EdgeIndex<Ix>) -> bool
+fn must_check_for_cycle<N, E, Ix>(dag: &Dag<N, E, Ix>, a: NodeIndex<Ix>, b: NodeIndex<Ix>) -> bool
     where Ix: IndexType,
 {
     dag.parents(a).next(dag).is_some() && dag.children(b).next(dag).is_some()
-    && !dag.children(a).any(dag, |_, e, n| n == b && e != new_edge)
+    && dag.find_edge(a, b).is_none()
 }
 
 
