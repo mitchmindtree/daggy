@@ -14,17 +14,15 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-
 extern crate petgraph as pg;
 
-
-pub use pg as petgraph;
-pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
-pub use walker::Walker;
 use pg::graph::{DefIndex, GraphIndex, IndexType};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
+pub use pg as petgraph;
+pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
+pub use walker::Walker;
 
 pub mod walker;
 
@@ -36,6 +34,7 @@ pub type PetGraph<N, E, Ix> = pg::Graph<N, E, pg::Directed, Ix>;
 pub type RawNodes<'a, N, Ix> = &'a [pg::graph::Node<N, Ix>];
 /// Read only access into a **Dag**'s internal edge array.
 pub type RawEdges<'a, E, Ix> = &'a [pg::graph::Edge<E, Ix>];
+
 
 /// A Directed acyclic graph (DAG) data structure.
 ///
@@ -179,22 +178,16 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// **Panics** if either `a` or `b` do not exist within the **Dag**.
     ///
-    /// **Panics** if the Graph is at the maximum number of nodes for its index type.
+    /// **Panics** if the Graph is at the maximum number of edges for its index type.
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
         let idx = self.graph.add_edge(a, b, weight);
 
-        // Is our parent *a* has no parents or our child *b* has no children, we know that the
-        // graph cannot cycle.
-        if self.parents(a).next().is_none() || self.children(b).next().is_none() {
-            Ok(idx)
-
         // Check if adding the edge has created a cycle.
         //
-        // TODO: Once petgraph adds support for re-using visit stack/maps, use that so that we
-        // don't have to re-allocate every time `add_edge` is called.
-        } else if pg::algo::is_cyclic_directed(&self.graph) {
+        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
+        if must_check_for_cycle(self, a, b, idx) && pg::algo::is_cyclic_directed(&self.graph) {
             let weight = self.graph.remove_edge(idx).expect("No edge for index");
             Err(WouldCycle(weight))
 
@@ -232,26 +225,35 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
     ///  the [add_child](./struct.Dag.html#method.add_child) or [add_parent]
-    ///  (./struct.Dag.html#method.add_parent) methods instead for better performance. These
-    ///  perform better as there is no need to check for cycles.
+    ///  (./struct.Dag.html#method.add_parent) methods instead for greater convenience.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>> where
         I: ::std::iter::IntoIterator<Item=(NodeIndex<Ix>, NodeIndex<Ix>, E)>,
     {
         let mut num_edges = 0;
+        let mut should_check_for_cycle = false;
+
         for (a, b, weight) in edges {
-            self.graph.add_edge(a, b, weight);
+            let idx = self.graph.add_edge(a, b, weight);
+
+            // For every added edge, we must check whether or not we need to check for cycles.
+            if !should_check_for_cycle {
+                if must_check_for_cycle(self, a, b, idx) {
+                    should_check_for_cycle = true;
+                }
+            }
+
             num_edges += 1;
         }
 
         let total_edges = self.edge_count();
-        let new_edges_range = total_edges-num_edges .. total_edges;
+        let new_edges_range = total_edges-num_edges..total_edges;
 
         // Check if adding the edges has created a cycle.
-        // TODO: Once petgraph adds support for re-using visit stack/maps, use that so that we
-        // don't have to re-allocate every time `add_edges` is called.
-        if pg::algo::is_cyclic_directed(&self.graph) {
+        //
+        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
+        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph) {
             let removed_edges = new_edges_range.rev().filter_map(|i| {
                 let idx = EdgeIndex::new(i);
                 self.graph.remove_edge(idx)
@@ -278,7 +280,7 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
     /// some parent node, consider using the [`add_child`](./struct.Dag.html#method.add_child)
-    /// method instead for better performance.
+    /// method instead for greater convenience.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn update_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E)
@@ -475,6 +477,22 @@ impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
         walker::Recursive::new(start, recursive_fn)
     }
 
+}
+
+
+/// After adding a new edge to the graph, we use this function immediately after to check whether
+/// or not we need to check for a cycle.
+/// 
+/// If our parent *a* has no parents or our child *b* has no children, or if there was already an
+/// edge connecting *a* to *b*, we know that adding this edge has not caused the graph to cycle.
+fn must_check_for_cycle<N, E, Ix>(dag: &Dag<N, E, Ix>,
+                                  a: NodeIndex<Ix>,
+                                  b: NodeIndex<Ix>,
+                                  new_edge: EdgeIndex<Ix>) -> bool
+    where Ix: IndexType,
+{
+    dag.parents(a).next(dag).is_some() && dag.children(b).next(dag).is_some()
+    && !dag.children(a).any(dag, |_, e, _| e != new_edge)
 }
 
 
