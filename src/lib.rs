@@ -492,7 +492,7 @@ fn must_check_for_cycle<N, E, Ix>(dag: &Dag<N, E, Ix>,
     where Ix: IndexType,
 {
     dag.parents(a).next(dag).is_some() && dag.children(b).next(dag).is_some()
-    && !dag.children(a).any(dag, |_, e, _| e != new_edge)
+    && !dag.children(a).any(dag, |_, e, n| n == b && e != new_edge)
 }
 
 
