@@ -14,14 +14,14 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-extern crate petgraph as pg;
+pub extern crate petgraph;
+use petgraph as pg;
 
-use pg::graph::{DefIndex, GraphIndex, IndexType};
+use petgraph::graph::{DefIndex, GraphIndex, IndexType};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
-pub use pg as petgraph;
-pub use pg::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
+pub use petgraph::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
 pub use walker::Walker;
 
 pub mod walker;
@@ -96,7 +96,7 @@ pub type RecursiveWalk<N, E, Ix, F> = walker::Recursive<Dag<N, E, Ix>, Ix, F>;
 pub struct WouldCycle<E>(pub E);
 
 
-impl<N, E, Ix = DefIndex> Dag<N, E, Ix> where Ix: IndexType {
+impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
 
     /// Create a new, empty `Dag`.
     pub fn new() -> Self {

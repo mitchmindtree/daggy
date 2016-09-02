@@ -2,7 +2,7 @@
 
 
 use ::{EdgeIndex, NodeIndex};
-use pg::graph::IndexType;
+use petgraph::graph::IndexType;
 use std::marker::PhantomData;
 use std::ops::Index;
 
