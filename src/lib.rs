@@ -24,6 +24,9 @@ use std::ops::{Index, IndexMut};
 pub use petgraph::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
 pub use walker::Walker;
 
+use petgraph::algo::{DfsSpace, has_path_connecting};
+use petgraph::visit::Visitable;
+
 pub mod walker;
 
 
@@ -62,6 +65,7 @@ pub type RawEdges<'a, E, Ix> = &'a [pg::graph::Edge<E, Ix>];
 #[derive(Clone, Debug)]
 pub struct Dag<N, E, Ix: IndexType = DefaultIx> {
     graph: PetGraph<N, E, Ix>,
+    cycle_state: DfsSpace<NodeIndex<Ix>, <PetGraph<N, E, Ix> as Visitable>::Map>,
 }
 
 
@@ -105,7 +109,10 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
 
     /// Create a new `Dag` with estimated capacity for its node and edge Vecs.
     pub fn with_capacity(nodes: usize, edges: usize) -> Self {
-        Dag { graph: PetGraph::with_capacity(nodes, edges) }
+        Dag {
+            graph: PetGraph::with_capacity(nodes, edges),
+            cycle_state: DfsSpace::default(),
+        }
     }
 
     /// Removes all nodes and edges from the **Dag**.
@@ -134,7 +141,7 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
     /// All existing indices may be used to index into this `PetGraph` the same way they may be
     /// used to index into the `Dag`.
     pub fn into_graph(self) -> PetGraph<N, E, Ix> {
-        let Dag { graph } = self;
+        let Dag { graph, .. } = self;
         graph
     }
 
@@ -183,20 +190,12 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
         let should_check_for_cycle = must_check_for_cycle(self, a, b);
-
-        let idx = self.graph.add_edge(a, b, weight);
-
-        // Check if adding the edge has created a cycle.
-        //
-        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
-        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph, None) {
-            let weight = self.graph.remove_edge(idx).expect("No edge for index");
-            Err(WouldCycle(weight))
-
-        // If no cycles were found, we're done.
-        } else {
-            Ok(idx)
+        let state = Some(&mut self.cycle_state);
+        if should_check_for_cycle && has_path_connecting(&self.graph, b, a, state) {
+            return Err(WouldCycle(weight));
         }
+
+        Ok(self.graph.add_edge(a, b, weight))
     }
 
     /// Adds the given directed edges to the `Dag`, each with their own given weight.
@@ -252,9 +251,8 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
         let new_edges_range = total_edges-num_edges..total_edges;
 
         // Check if adding the edges has created a cycle.
-        //
-        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
-        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph, None) {
+        if should_check_for_cycle &&
+            pg::algo::is_cyclic_directed(&self.graph, Some(&mut self.cycle_state)) {
             let removed_edges = new_edges_range.rev().filter_map(|i| {
                 let idx = EdgeIndex::new(i);
                 self.graph.remove_edge(idx)
