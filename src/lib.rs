@@ -17,12 +17,15 @@
 pub extern crate petgraph;
 use petgraph as pg;
 
-use petgraph::graph::{DefIndex, GraphIndex, IndexType};
+use petgraph::graph::{DefaultIx, GraphIndex, IndexType};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
 pub use petgraph::graph::{EdgeIndex, NodeIndex, EdgeWeightsMut, NodeWeightsMut};
 pub use walker::Walker;
+
+use petgraph::algo::{DfsSpace, has_path_connecting};
+use petgraph::visit::Visitable;
 
 pub mod walker;
 
@@ -60,14 +63,15 @@ pub type RawEdges<'a, E, Ix> = &'a [pg::graph::Edge<E, Ix>];
 /// The **Dag** also offers methods for accessing the underlying **Graph**, which can be useful
 /// for taking advantage of petgraph's various graph-related algorithms.
 #[derive(Clone, Debug)]
-pub struct Dag<N, E, Ix: IndexType = DefIndex> {
+pub struct Dag<N, E, Ix: IndexType = DefaultIx> {
     graph: PetGraph<N, E, Ix>,
+    cycle_state: DfsSpace<NodeIndex<Ix>, <PetGraph<N, E, Ix> as Visitable>::Map>,
 }
 
 
 /// A **Walker** type that can be used to step through the children of some parent node.
 pub struct Children<N, E, Ix: IndexType> {
-    walk_edges: pg::graph::WalkEdges<Ix>,
+    walk_edges: pg::graph::WalkNeighbors<Ix>,
     _node: PhantomData<N>,
     _edge: PhantomData<E>,
 }
@@ -75,7 +79,7 @@ pub struct Children<N, E, Ix: IndexType> {
 
 /// A **Walker** type that can be used to step through the children of some parent node.
 pub struct Parents<N, E, Ix: IndexType> {
-    walk_edges: pg::graph::WalkEdges<Ix>,
+    walk_edges: pg::graph::WalkNeighbors<Ix>,
     _node: PhantomData<N>,
     _edge: PhantomData<E>,
 }
@@ -105,7 +109,10 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
 
     /// Create a new `Dag` with estimated capacity for its node and edge Vecs.
     pub fn with_capacity(nodes: usize, edges: usize) -> Self {
-        Dag { graph: PetGraph::with_capacity(nodes, edges) }
+        Dag {
+            graph: PetGraph::with_capacity(nodes, edges),
+            cycle_state: DfsSpace::default(),
+        }
     }
 
     /// Removes all nodes and edges from the **Dag**.
@@ -134,7 +141,7 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
     /// All existing indices may be used to index into this `PetGraph` the same way they may be
     /// used to index into the `Dag`.
     pub fn into_graph(self) -> PetGraph<N, E, Ix> {
-        let Dag { graph } = self;
+        let Dag { graph, .. } = self;
         graph
     }
 
@@ -183,20 +190,12 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
         -> Result<EdgeIndex<Ix>, WouldCycle<E>>
     {
         let should_check_for_cycle = must_check_for_cycle(self, a, b);
-
-        let idx = self.graph.add_edge(a, b, weight);
-
-        // Check if adding the edge has created a cycle.
-        //
-        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
-        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph) {
-            let weight = self.graph.remove_edge(idx).expect("No edge for index");
-            Err(WouldCycle(weight))
-
-        // If no cycles were found, we're done.
-        } else {
-            Ok(idx)
+        let state = Some(&mut self.cycle_state);
+        if should_check_for_cycle && has_path_connecting(&self.graph, b, a, state) {
+            return Err(WouldCycle(weight));
         }
+
+        Ok(self.graph.add_edge(a, b, weight))
     }
 
     /// Adds the given directed edges to the `Dag`, each with their own given weight.
@@ -252,9 +251,8 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
         let new_edges_range = total_edges-num_edges..total_edges;
 
         // Check if adding the edges has created a cycle.
-        //
-        // TODO: Re-use a `pg::visit::Topo` for this. Perhaps store this in the `Dag` itself?
-        if should_check_for_cycle && pg::algo::is_cyclic_directed(&self.graph) {
+        if should_check_for_cycle &&
+            pg::algo::is_cyclic_directed(&self.graph, Some(&mut self.cycle_state)) {
             let removed_edges = new_edges_range.rev().filter_map(|i| {
                 let idx = EdgeIndex::new(i);
                 self.graph.remove_edge(idx)
@@ -442,7 +440,7 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
-        let walk_edges = self.graph.walk_edges_directed(child, pg::Incoming);
+        let walk_edges = self.graph.neighbors_directed(child, pg::Incoming).detach();
         Parents {
             walk_edges: walk_edges,
             _node: PhantomData,
@@ -460,7 +458,7 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
     ///
     /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
-        let walk_edges = self.graph.walk_edges_directed(parent, pg::Outgoing);
+        let walk_edges = self.graph.neighbors_directed(parent, pg::Outgoing).detach();
         Children {
             walk_edges: walk_edges,
             _node: PhantomData,
@@ -527,7 +525,7 @@ impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Children<N, E, Ix>
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
-        self.walk_edges.next_neighbor(&dag.graph)
+        self.walk_edges.next(&dag.graph)
     }
 }
 
@@ -537,7 +535,7 @@ impl<N, E, Ix> Walker<Dag<N, E, Ix>> for Parents<N, E, Ix>
     type Index = Ix;
     #[inline]
     fn next(&mut self, dag: &Dag<N, E, Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)> {
-        self.walk_edges.next_neighbor(&dag.graph)
+        self.walk_edges.next(&dag.graph)
     }
 }
 
