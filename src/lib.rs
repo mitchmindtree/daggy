@@ -77,7 +77,7 @@ pub struct Children<N, E, Ix: IndexType> {
 }
 
 
-/// A **Walker** type that can be used to step through the children of some parent node.
+/// A **Walker** type that can be used to step through the parents of some child node.
 pub struct Parents<N, E, Ix: IndexType> {
     walk_edges: pg::graph::WalkNeighbors<Ix>,
     _node: PhantomData<N>,
