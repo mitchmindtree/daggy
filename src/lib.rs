@@ -252,7 +252,7 @@ impl<N, E, Ix> Dag<N, E, Ix> where Ix: IndexType {
 
         // Check if adding the edges has created a cycle.
         if should_check_for_cycle &&
-            pg::algo::is_cyclic_directed(&self.graph, Some(&mut self.cycle_state)) {
+            pg::algo::is_cyclic_directed(&self.graph) {
             let removed_edges = new_edges_range.rev().filter_map(|i| {
                 let idx = EdgeIndex::new(i);
                 self.graph.remove_edge(idx)
