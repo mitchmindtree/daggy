@@ -219,7 +219,7 @@ where
     /// Nodes are mapped first with the `node_map` closure, then `edge_map` is called for the edges
     /// that have not had any endpoint removed.
     ///
-    /// The resulting graph has the structure of a subgraph of the original graph. If no noodes are
+    /// The resulting graph has the structure of a subgraph of the original graph. If no nodes are
     /// removed, the resulting graph has compatible node indices.
     ///
     /// If neither nodes nor edges are removed, the resulting graph has compatible node indices. If
@@ -249,7 +249,7 @@ where
         self.graph.node_count()
     }
 
-    /// The total number of edgees in the **Dag**.
+    /// The total number of edges in the **Dag**.
     pub fn edge_count(&self) -> usize {
         self.graph.edge_count()
     }
