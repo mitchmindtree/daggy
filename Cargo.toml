@@ -1,6 +1,6 @@
 [package]
 name = "daggy"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A directed acyclic graph data structure library. It is Implemented on top of petgraph's Graph data structure and attempts to follow similar conventions where suitable."
 readme = "README.md"
@@ -10,4 +10,11 @@ repository = "https://github.com/mitchmindtree/daggy.git"
 homepage = "https://github.com/mitchmindtree/daggy"
 
 [dependencies]
-petgraph = { version = "0.4.5", default-features = false }
+petgraph = { version = "0.4", default-features = false }
+serde = { version = "1.0", optional = true }
+
+[features]
+serde-1 = ["petgraph/serde-1", "serde"]
+
+[package.metadata.docs.rs]
+features = ["serde-1"]

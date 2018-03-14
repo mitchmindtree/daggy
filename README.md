@@ -1,16 +1,9 @@
-# daggy [![Build Status](https://travis-ci.org/mitchmindtree/daggy.svg?branch=master)](https://travis-ci.org/mitchmindtree/daggy) [![Crates.io](https://img.shields.io/crates/v/daggy.svg)](https://crates.io/crates/daggy) [![Crates.io](https://img.shields.io/crates/l/daggy.svg)](https://github.com/mitchmindtree/daggy/blob/master/LICENSE-MIT)
-
+# daggy [![Build Status](https://travis-ci.org/mitchmindtree/daggy.svg?branch=master)](https://travis-ci.org/mitchmindtree/daggy) [![Crates.io](https://img.shields.io/crates/v/daggy.svg)](https://crates.io/crates/daggy) [![Crates.io](https://img.shields.io/crates/l/daggy.svg)](https://github.com/mitchmindtree/daggy/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/daggy/badge.svg)](https://docs.rs/daggy/)
 
 
 A [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) data structure for Rust.
 
-It is Implemented on top of [petgraph](https://github.com/bluss/petulant-avenger-graphlibrary)'s [Graph](http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.Graph.html) data structure and attempts to follow similar conventions where suitable.
-
-
-Documentation
--------------
-
-[API documentation here!](http://mitchmindtree.github.io/daggy/daggy)
+It is Implemented on top of [petgraph](https://github.com/bluss/petulant-avenger-graphlibrary)'s [Graph](https://docs.rs/petgraph/0.4.11/petgraph/graph/struct.Graph.html) data structure and attempts to follow similar conventions where suitable.
 
 
 Usage

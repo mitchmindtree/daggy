@@ -5,6 +5,7 @@ rust:
 script:
 - cargo build --verbose
 - cargo test --verbose
+- cargo test --all-features --verbose
 - cargo doc --verbose
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
