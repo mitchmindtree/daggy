@@ -10,7 +10,7 @@ repository = "https://github.com/mitchmindtree/daggy.git"
 homepage = "https://github.com/mitchmindtree/daggy"
 
 [dependencies]
-petgraph = { version = "0.4", default-features = false }
+petgraph = { version = "0.4", default-features = false, features = ["stable_graph"] }
 serde = { version = "1.0", optional = true }
 
 [features]
