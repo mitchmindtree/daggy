@@ -1,6 +1,6 @@
-//! This module includes the implementation of the **StableDag** data structre. The **StableDag** has
-//! similar functionality as the **Dag** data structure, but it does not invalidate node indices when
-//! a node is removed.
+//! This module includes the implementation of the **StableDag** data structure. The **StableDag**
+//! has a similar functionality to the **Dag** data structure, but it does not invalidate node
+//! indices when a node is removed.
 
 use petgraph as pg;
 use petgraph::algo::{has_path_connecting, DfsSpace};
@@ -19,6 +19,7 @@ use std::ops::{Index, IndexMut};
 pub use petgraph::graph::{EdgeIndex, EdgeWeightsMut, NodeIndex, NodeWeightsMut};
 pub use petgraph::visit::Walker;
 
+use WouldCycle;
 use walker;
 
 
@@ -27,13 +28,14 @@ pub type Edges<'a, E, Ix> = pg::stable_graph::Edges<'a, E, pg::Directed, Ix>;
 
 /// A Directed acyclic graph (DAG) data structure.
 ///
-/// StableDag is a thin wrapper around petgraph's `StableGraph` data structure, providing a refined API for
-/// dealing specifically with DAGs.
+/// StableDag is a thin wrapper around petgraph's `StableGraph` data structure, providing a refined
+/// API for dealing specifically with DAGs.
 ///
 /// Note: The following documentation is adapted from petgraph's [**StableGraph** documentation]
 /// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.StableGraph.html).
 ///
-/// **StableDag** is parameterized over the node weight **N**, edge weight **E** and index type **Ix**.
+/// **StableDag** is parameterized over the node weight **N**, edge weight **E** and index type
+/// **Ix**.
 ///
 /// **NodeIndex** is a type that acts as a reference to nodes, but these are only stable across
 /// certain operations. **StableDag++ keeps all indices stable even when removing nodes/edges.
@@ -41,8 +43,8 @@ pub type Edges<'a, E, Ix> = pg::stable_graph::Edges<'a, E, pg::Directed, Ix>;
 /// The **Ix** parameter is u32 by default. The goal is that you can ignore this parameter
 /// completely unless you need a very large **StableDag** -- then you can use usize.
 ///
-/// The **StableDag** also offers methods for accessing the underlying **StableGraph**, which can be useful
-/// for taking advantage of petgraph's various graph-related algorithms.
+/// The **StableDag** also offers methods for accessing the underlying **StableGraph**, which can be
+/// useful for taking advantage of petgraph's various graph-related algorithms.
 #[derive(Clone, Debug)]
 pub struct StableDag<N, E, Ix: IndexType = DefaultIx> {
     graph: StableDiGraph<N, E, Ix>,
@@ -72,14 +74,9 @@ pub struct EdgeIndices<Ix: IndexType> {
 /// An alias to simplify the **Recursive** **Walker** type returned by **StableDag**.
 pub type RecursiveWalk<N, E, Ix, F> = walker::Recursive<StableDag<N, E, Ix>, F>;
 
-/// An error returned by the `StableDag::add_edge` method in the case that adding an edge would have
-/// caused the graph to cycle.
-#[derive(Copy, Clone)]
-pub struct WouldCycle<E>(pub E);
-
 impl<N, E, Ix> StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     /// Create a new, empty `StableDag`.
     pub fn new() -> Self {
@@ -105,11 +102,11 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// Returns an `Err` if adding any of the edges would cause a cycle.
     pub fn from_edges<I>(edges: I) -> Result<Self, WouldCycle<E>>
-        where
-            I: IntoIterator,
-            I::Item: IntoWeightedEdge<E>,
-            <I::Item as IntoWeightedEdge<E>>::NodeId: Into<NodeIndex<Ix>>,
-            N: Default,
+    where
+        I: IntoIterator,
+        I::Item: IntoWeightedEdge<E>,
+        <I::Item as IntoWeightedEdge<E>>::NodeId: Into<NodeIndex<Ix>>,
+        N: Default,
     {
         let mut dag = Self::default();
         dag.extend_with_edges(edges)?;
@@ -127,11 +124,11 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// Returns an `Err` if adding an edge would cause a cycle.
     pub fn extend_with_edges<I>(&mut self, edges: I) -> Result<(), WouldCycle<E>>
-        where
-            I: IntoIterator,
-            I::Item: IntoWeightedEdge<E>,
-            <I::Item as IntoWeightedEdge<E>>::NodeId: Into<NodeIndex<Ix>>,
-            N: Default,
+    where
+        I: IntoIterator,
+        I::Item: IntoWeightedEdge<E>,
+        <I::Item as IntoWeightedEdge<E>>::NodeId: Into<NodeIndex<Ix>>,
+        N: Default,
     {
         for edge in edges {
             let (source, target, weight) = edge.into_weighted_edge();
@@ -149,9 +146,9 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// Returns an `Err` if an edge would cause a cycle within the graph.
     pub fn from_elements<I>(elements: I) -> Result<Self, WouldCycle<E>>
-        where
-            Self: Sized,
-            I: IntoIterator<Item = pg::data::Element<N, E>>,
+    where
+        Self: Sized,
+        I: IntoIterator<Item = pg::data::Element<N, E>>,
     {
         let mut dag = Self::default();
         for elem in elements {
@@ -177,9 +174,9 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// The resulting graph has the same structure and the same graph indices as `self`.
     pub fn map<'a, F, G, N2, E2>(&'a self, node_map: F, edge_map: G) -> StableDag<N2, E2, Ix>
-        where
-            F: FnMut(NodeIndex<Ix>, &'a N) -> N2,
-            G: FnMut(EdgeIndex<Ix>, &'a E) -> E2,
+    where
+        F: FnMut(NodeIndex<Ix>, &'a N) -> N2,
+        G: FnMut(EdgeIndex<Ix>, &'a E) -> E2,
     {
         let graph = self.graph.map(node_map, edge_map);
         let cycle_state = self.cycle_state.clone();
@@ -189,8 +186,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
         }
     }
 
-    /// Create a new `StableDag` by mapping node and edge weights. A node or edge may be mapped to `None`
-    /// to exclude it from the resulting `StableDag`.
+    /// Create a new `StableDag` by mapping node and edge weights. A node or edge may be mapped to
+    /// `None` to exclude it from the resulting `StableDag`.
     ///
     /// Nodes are mapped first with the `node_map` closure, then `edge_map` is called for the edges
     /// that have not had any endpoint removed.
@@ -198,9 +195,9 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     /// The resulting graph has the structure of a subgraph of the original graph. Nodes and edges
     /// that are not removed maintain their old node or edge indices.
     pub fn filter_map<'a, F, G, N2, E2>(&'a self, node_map: F, edge_map: G) -> StableDag<N2, E2, Ix>
-        where
-            F: FnMut(NodeIndex<Ix>, &'a N) -> Option<N2>,
-            G: FnMut(EdgeIndex<Ix>, &'a E) -> Option<E2>,
+    where
+        F: FnMut(NodeIndex<Ix>, &'a N) -> Option<N2>,
+        G: FnMut(EdgeIndex<Ix>, &'a E) -> Option<E2>,
     {
         let graph = self.graph.filter_map(node_map, edge_map);
         let cycle_state = DfsSpace::new(&graph);
@@ -250,7 +247,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
     /// some other node, consider using the [add_child](./struct.StableDag.html#method.add_child) or
-    /// [add_parent](./struct.StableDag.html#method.add_parent) methods instead for better performance.
+    /// [add_parent](./struct.StableDag.html#method.add_parent) methods instead for better
+    /// performance.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -273,12 +271,13 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     /// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/algo/fn.is_cyclic_directed.html)
     /// function is used to check whether or not adding the edge would create a cycle.
     ///
-    /// **Note:** StableDag allows adding parallel ("duplicate") edges. If you want to avoid this, use
-    /// [`update_edge`](./struct.StableDag.html#method.update_edge) instead.
+    /// **Note:** StableDag allows adding parallel ("duplicate") edges. If you want to avoid this,
+    /// use [`update_edge`](./struct.StableDag.html#method.update_edge) instead.
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
     /// some other node, consider using the [add_child](./struct.StableDag.html#method.add_child) or
-    /// [add_parent](./struct.StableDag.html#method.add_parent) methods instead for better performance.
+    /// [add_parent](./struct.StableDag.html#method.add_parent) methods instead for better
+    /// performance.
     ///
     /// **Panics** if either `a` or `b` do not exist within the **StableDag**.
     ///
@@ -321,8 +320,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     /// instead a `WouldCycle<Vec<E>>` error with the unused weights will be returned. The order of
     /// the returned `Vec` will be the reverse of the given order.
     ///
-    /// **Note:** StableDag allows adding parallel ("duplicate") edges. If you want to avoid this, use
-    /// [`update_edges`](./struct.StableDag.html#method.update_edges) instead.
+    /// **Note:** StableDag allows adding parallel ("duplicate") edges. If you want to avoid this,
+    /// use [`update_edges`](./struct.StableDag.html#method.update_edges) instead.
     ///
     /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
     ///  the [add_child](./struct.StableDag.html#method.add_child) or [add_parent]
@@ -330,8 +329,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>>
-        where
-            I: IntoIterator<Item = (NodeIndex<Ix>, NodeIndex<Ix>, E)>,
+    where
+        I: IntoIterator<Item = (NodeIndex<Ix>, NodeIndex<Ix>, E)>,
     {
         let mut num_edges = 0;
         let mut should_check_for_cycle = false;
@@ -370,7 +369,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     ///
     /// If the edge doesn't already exist, it will be added using the `add_edge` method.
     ///
-    /// Please read the [`add_edge`](./struct.StableDag.html#method.add_edge) for more important details.
+    /// Please read the [`add_edge`](./struct.StableDag.html#method.add_edge) for more important
+    /// details.
     ///
     /// Checks if the edge would create a cycle in the Graph.
     ///
@@ -479,18 +479,6 @@ impl<N, E, Ix> StableDag<N, E, Ix>
         self.graph.node_weight_mut(node)
     }
 
-    /// Read from the internal node array.
-//    pub fn raw_nodes(&self) -> RawNodes<N, Ix> {
-//        self.graph.raw_nodes()
-//    }
-
-    /// An iterator yielding mutable access to all node weights.
-    ///
-    /// The order in which weights are yielded matches the order of their node indices.
-//    pub fn node_weights_mut(&mut self) -> NodeWeightsMut<N, Ix> {
-//        self.graph.node_weights_mut()
-//    }
-
     /// Borrow the weight from the edge at the given index.
     pub fn edge_weight(&self, edge: EdgeIndex<Ix>) -> Option<&E> {
         self.graph.edge_weight(edge)
@@ -500,18 +488,6 @@ impl<N, E, Ix> StableDag<N, E, Ix>
     pub fn edge_weight_mut(&mut self, edge: EdgeIndex<Ix>) -> Option<&mut E> {
         self.graph.edge_weight_mut(edge)
     }
-
-    /// Read from the internal edge array.
-//    pub fn raw_edges(&self) -> RawEdges<E, Ix> {
-//        self.graph.raw_edges()
-//    }
-
-    /// An iterator yielding mutable access to all edge weights.
-    ///
-    /// The order in which weights are yielded matches the order of their edge indices.
-//    pub fn edge_weights_mut(&mut self) -> EdgeWeightsMut<E, Ix> {
-//        self.graph.edge_weights_mut()
-//    }
 
     /// Index the `StableDag` by two indices.
     ///
@@ -526,10 +502,10 @@ impl<N, E, Ix> StableDag<N, E, Ix>
         &mut <StableDiGraph<N, E, Ix> as Index<A>>::Output,
         &mut <StableDiGraph<N, E, Ix> as Index<B>>::Output,
     )
-        where
-            StableDiGraph<N, E, Ix>: IndexMut<A> + IndexMut<B>,
-            A: GraphIndex,
-            B: GraphIndex,
+    where
+        StableDiGraph<N, E, Ix>: IndexMut<A> + IndexMut<B>,
+        A: GraphIndex,
+        B: GraphIndex,
     {
         self.graph.index_twice_mut(a, b)
     }
@@ -591,8 +567,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
         start: NodeIndex<Ix>,
         recursive_fn: F,
     ) -> RecursiveWalk<N, E, Ix, F>
-        where
-            F: FnMut(&Self, NodeIndex<Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)>,
+    where
+        F: FnMut(&Self, NodeIndex<Ix>) -> Option<(EdgeIndex<Ix>, NodeIndex<Ix>)>,
     {
         walker::Recursive::new(start, recursive_fn)
     }
@@ -604,8 +580,8 @@ impl<N, E, Ix> StableDag<N, E, Ix>
 /// If our parent *a* has no parents or our child *b* has no children, or if there was already an
 /// edge connecting *a* to *b*, we know that adding this edge has not caused the graph to cycle.
 fn must_check_for_cycle<N, E, Ix>(dag: &StableDag<N, E, Ix>, a: NodeIndex<Ix>, b: NodeIndex<Ix>) -> bool
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     dag.parents(a).walk_next(dag).is_some() && dag.children(b).walk_next(dag).is_some()
         && dag.find_edge(a, b).is_none()
@@ -614,8 +590,8 @@ fn must_check_for_cycle<N, E, Ix>(dag: &StableDag<N, E, Ix>, a: NodeIndex<Ix>, b
 // Dag implementations.
 
 impl<N, E, Ix> Into<StableDiGraph<N, E, Ix>> for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn into(self) -> StableDiGraph<N, E, Ix> {
         self.into_graph()
@@ -623,8 +599,8 @@ impl<N, E, Ix> Into<StableDiGraph<N, E, Ix>> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> Default for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn default() -> Self {
         StableDag::new()
@@ -633,14 +609,14 @@ impl<N, E, Ix> Default for StableDag<N, E, Ix>
 
 #[cfg(feature = "serde-1")]
 impl<N, E, Ix> Serialize for StableDag<N, E, Ix>
-    where
-        N: Serialize,
-        E: Serialize,
-        Ix: IndexType + Serialize,
+where
+    N: Serialize,
+    E: Serialize,
+    Ix: IndexType + Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         self.graph.serialize(serializer)
     }
@@ -648,15 +624,15 @@ impl<N, E, Ix> Serialize for StableDag<N, E, Ix>
 
 #[cfg(feature = "serde-1")]
 impl<'de, N, E, Ix> Deserialize<'de> for StableDag<N, E, Ix>
-    where
-        Self: Sized,
-        N: Deserialize<'de>,
-        E: Deserialize<'de>,
-        Ix: IndexType + Deserialize<'de>,
+where
+    Self: Sized,
+    N: Deserialize<'de>,
+    E: Deserialize<'de>,
+    Ix: IndexType + Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let graph = Deserialize::deserialize(deserializer)?;
         let cycle_state = DfsSpace::new(&graph);
@@ -669,16 +645,16 @@ impl<'de, N, E, Ix> Deserialize<'de> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> GraphBase for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type NodeId = NodeIndex<Ix>;
     type EdgeId = EdgeIndex<Ix>;
 }
 
 impl<N, E, Ix> NodeCount for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn node_count(&self) -> usize {
         StableDag::node_count(self)
@@ -686,8 +662,8 @@ impl<N, E, Ix> NodeCount for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> GraphProp for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type EdgeType = pg::Directed;
     fn is_directed(&self) -> bool {
@@ -696,8 +672,8 @@ impl<N, E, Ix> GraphProp for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> pg::visit::Visitable for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Map = <StableDiGraph<N, E, Ix> as Visitable>::Map;
     fn visit_map(&self) -> Self::Map {
@@ -709,16 +685,16 @@ impl<N, E, Ix> pg::visit::Visitable for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> pg::visit::Data for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type NodeWeight = N;
     type EdgeWeight = E;
 }
 
 impl<N, E, Ix> pg::data::DataMap for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn node_weight(&self, id: Self::NodeId) -> Option<&Self::NodeWeight> {
         self.graph.node_weight(id)
@@ -729,8 +705,8 @@ impl<N, E, Ix> pg::data::DataMap for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> pg::data::DataMapMut for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn node_weight_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::NodeWeight> {
         self.graph.node_weight_mut(id)
@@ -741,8 +717,8 @@ impl<N, E, Ix> pg::data::DataMapMut for StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoNeighbors for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Neighbors = pg::stable_graph::Neighbors<'a, E, Ix>;
     fn neighbors(self, n: NodeIndex<Ix>) -> Self::Neighbors {
@@ -751,8 +727,8 @@ impl<'a, N, E, Ix> IntoNeighbors for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoNeighborsDirected for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type NeighborsDirected = pg::stable_graph::Neighbors<'a, E, Ix>;
     fn neighbors_directed(self, n: NodeIndex<Ix>, d: pg::Direction) -> Self::Neighbors {
@@ -761,8 +737,8 @@ impl<'a, N, E, Ix> IntoNeighborsDirected for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoEdgeReferences for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type EdgeRef = pg::stable_graph::EdgeReference<'a, E, Ix>;
     type EdgeReferences = pg::stable_graph::EdgeReferences<'a, E, Ix>;
@@ -772,8 +748,8 @@ impl<'a, N, E, Ix> IntoEdgeReferences for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoEdges for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Edges = Edges<'a, E, Ix>;
     fn edges(self, a: Self::NodeId) -> Self::Edges {
@@ -782,8 +758,8 @@ impl<'a, N, E, Ix> IntoEdges for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoEdgesDirected for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type EdgesDirected = Edges<'a, E, Ix>;
     fn edges_directed(self, a: Self::NodeId, dir: pg::Direction) -> Self::EdgesDirected {
@@ -792,9 +768,8 @@ impl<'a, N, E, Ix> IntoEdgesDirected for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoNodeIdentifiers for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType
-
+where
+    Ix: IndexType,
 {
     type NodeIdentifiers = pg::stable_graph::NodeIndices<'a, N, Ix>;
     fn node_identifiers(self) -> Self::NodeIdentifiers {
@@ -803,8 +778,8 @@ impl<'a, N, E, Ix> IntoNodeIdentifiers for &'a StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> IntoNodeReferences for &'a StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type NodeRef = (NodeIndex<Ix>, &'a N);
     type NodeReferences = pg::stable_graph::NodeReferences<'a, N, Ix>;
@@ -814,8 +789,8 @@ impl<'a, N, E, Ix> IntoNodeReferences for &'a StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> NodeIndexable for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn node_bound(&self) -> usize {
         self.graph.node_bound()
@@ -829,14 +804,14 @@ impl<N, E, Ix> NodeIndexable for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> NodeCompactIndexable for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
 }
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Output = N;
     fn index(&self, index: NodeIndex<Ix>) -> &N {
@@ -845,8 +820,8 @@ impl<N, E, Ix> Index<NodeIndex<Ix>> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn index_mut(&mut self, index: NodeIndex<Ix>) -> &mut N {
         &mut self.graph[index]
@@ -854,8 +829,8 @@ impl<N, E, Ix> IndexMut<NodeIndex<Ix>> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> Index<EdgeIndex<Ix>> for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Output = E;
     fn index(&self, index: EdgeIndex<Ix>) -> &E {
@@ -864,8 +839,8 @@ impl<N, E, Ix> Index<EdgeIndex<Ix>> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> IndexMut<EdgeIndex<Ix>> for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn index_mut(&mut self, index: EdgeIndex<Ix>) -> &mut E {
         &mut self.graph[index]
@@ -873,8 +848,8 @@ impl<N, E, Ix> IndexMut<EdgeIndex<Ix>> for StableDag<N, E, Ix>
 }
 
 impl<N, E, Ix> GetAdjacencyMatrix for StableDag<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type AdjMatrix = <StableDiGraph<N, E, Ix> as GetAdjacencyMatrix>::AdjMatrix;
     fn adjacency_matrix(&self) -> Self::AdjMatrix {
@@ -886,8 +861,8 @@ impl<N, E, Ix> GetAdjacencyMatrix for StableDag<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> Walker<&'a StableDag<N, E, Ix>> for Children<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Item = (EdgeIndex<Ix>, NodeIndex<Ix>);
     #[inline]
@@ -897,8 +872,8 @@ impl<'a, N, E, Ix> Walker<&'a StableDag<N, E, Ix>> for Children<N, E, Ix>
 }
 
 impl<'a, N, E, Ix> Walker<&'a StableDag<N, E, Ix>> for Parents<N, E, Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Item = (EdgeIndex<Ix>, NodeIndex<Ix>);
     #[inline]
@@ -908,29 +883,11 @@ impl<'a, N, E, Ix> Walker<&'a StableDag<N, E, Ix>> for Parents<N, E, Ix>
 }
 
 impl<Ix> Iterator for EdgeIndices<Ix>
-    where
-        Ix: IndexType,
+where
+    Ix: IndexType,
 {
     type Item = EdgeIndex<Ix>;
     fn next(&mut self) -> Option<EdgeIndex<Ix>> {
         self.indices.next().map(|i| EdgeIndex::new(i))
-    }
-}
-
-impl<E> ::std::fmt::Debug for WouldCycle<E> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        writeln!(f, "WouldCycle")
-    }
-}
-
-impl<E> ::std::fmt::Display for WouldCycle<E> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        writeln!(f, "{:?}", self)
-    }
-}
-
-impl<E> ::std::error::Error for WouldCycle<E> {
-    fn description(&self) -> &str {
-        "Adding this edge would have created a cycle"
     }
 }
