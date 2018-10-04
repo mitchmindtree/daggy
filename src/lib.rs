@@ -35,6 +35,7 @@ use std::ops::{Index, IndexMut};
 pub use petgraph::graph::{EdgeIndex, EdgeWeightsMut, NodeIndex, NodeWeightsMut};
 pub use petgraph::visit::Walker;
 
+#[cfg(feature = "stable_dag")]
 pub mod stabledag;
 
 pub mod walker;
