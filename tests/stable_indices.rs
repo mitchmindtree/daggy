@@ -1,7 +1,7 @@
+#![cfg(feature = "stable_dag")]
 extern crate daggy;
 
 use daggy::stabledag::StableDag;
-
 
 #[test]
 pub fn remove_nodes() {
@@ -12,15 +12,12 @@ pub fn remove_nodes() {
     let c = dag.add_node(3);
 
     dag.remove_node(b);
-
-
+    
     assert_eq!(Some(&0), dag.node_weight(root));
     assert_eq!(Some(&1), dag.node_weight(a));
     assert_eq!(None, dag.node_weight(b));
     assert_eq!(Some(&3), dag.node_weight(c));
-
 }
-
 
 #[test]
 fn remove_edges() {
