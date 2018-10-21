@@ -1,8 +1,6 @@
 //! **daggy** is a directed acyclic graph data structure library.
 //!
-//! The most prominent type is [**Dag**](./struct.Dag.html) - a wrapper around [petgraph]
-//! (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/index.html)'s [**Graph**]
-//! (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.Graph.html)
+//! The most prominent type is [**Dag**][1] - a wrapper around [petgraph][2]'s [**Graph**][3]
 //! data structure, exposing a refined API targeted towards directed acyclic graph related
 //! functionality.
 //!
@@ -10,6 +8,11 @@
 //! traversing any graph type. Its methods behave similarly to iterator types, however **Walker**s
 //! do not require borrowing the graph. This means that we can still safely mutably borrow from the
 //! graph whilst we traverse it.
+//!
+//!
+//! [1]: ./struct.Dag.html
+//! [2]: https://docs.rs/petgraph/0.4/petgraph/
+//! [3]: https://docs.rs/petgraph/0.4/petgraph/graph/struct.Graph.html
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
