@@ -21,6 +21,7 @@ pub use petgraph::visit::Walker;
 
 use WouldCycle;
 use walker;
+use Dag;
 
 
 /// An iterator yielding all edges to/from some node.
@@ -889,5 +890,20 @@ where
     type Item = EdgeIndex<Ix>;
     fn next(&mut self) -> Option<EdgeIndex<Ix>> {
         self.indices.next().map(|i| EdgeIndex::new(i))
+    }
+}
+
+/// Convert a `Dag` into a `StableDag`
+///
+/// The resulting graph has the same node and edge indices as
+/// the original graph.
+impl<N, E, Ix> From<Dag<N, E, Ix>> for StableDag<N, E, Ix>
+    where Ix: IndexType,
+{
+    fn from(g: Dag<N, E, Ix>) -> Self {
+        StableDag {
+            graph: StableDiGraph::from(g.graph),
+            cycle_state: DfsSpace::default(),
+        }
     }
 }
