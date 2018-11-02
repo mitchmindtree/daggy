@@ -516,6 +516,10 @@ where
         self.graph.remove_node(node)
     }
 
+    pub fn contains_node(&self, a: NodeIndex<Ix>) -> bool {
+        self.graph.contains_node(a)
+    }
+
     /// Remove an edge and return its weight, or `None` if it didn't exist.
     ///
     /// Computes in **O(e')** time, where **e'** is the size of four particular edge lists, for the
