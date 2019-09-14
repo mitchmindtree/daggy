@@ -15,6 +15,7 @@ serde = { version = "1.0", optional = true }
 
 [features]
 serde-1 = ["petgraph/serde-1", "serde"]
+stable_dag = ["petgraph/stable_graph"]
 
 [package.metadata.docs.rs]
 features = ["serde-1"]
