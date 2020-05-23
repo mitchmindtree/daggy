@@ -81,4 +81,4 @@ jobs:
         override: true
     - name: cargo publish daggy
       continue-on-error: true
-      run: cargo publish --token $CRATESIO_TOKEN --manifest-path nannou/Cargo.toml
+      run: cargo publish --token $CRATESIO_TOKEN
