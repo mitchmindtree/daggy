@@ -269,17 +269,17 @@ fn any() {
     dag.add_child(parent, (), 3);
     dag.add_child(parent, (), 5);
 
-    assert!(!dag.children(parent)
+    assert!(!dag
+        .children(parent)
         .iter(&dag)
         .any(|(_, n)| dag[n] % 2 == 0));
 
     dag.add_child(parent, (), 6);
 
-    assert!(
-        dag.children(parent)
-            .iter(&dag)
-            .any(|(_, n)| dag[n] % 2 == 0)
-    );
+    assert!(dag
+        .children(parent)
+        .iter(&dag)
+        .any(|(_, n)| dag[n] % 2 == 0));
 }
 
 #[test]

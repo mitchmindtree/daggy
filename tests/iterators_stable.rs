@@ -1,7 +1,7 @@
 #![cfg(feature = "stable_dag")]
 extern crate daggy;
 
-use daggy::stabledag::{StableDag, Walker};
+use daggy::stable_dag::{StableDag, Walker};
 
 struct Weight;
 
@@ -61,7 +61,8 @@ fn weights() {
     dag.add_child(parent, 3, "3");
 
     {
-        let mut children = dag.children(parent)
+        let mut children = dag
+            .children(parent)
             .iter(&dag)
             .map(|(e, n)| (&dag[e], &dag[n]));
         assert_eq!(Some((&3, &"3")), children.next());

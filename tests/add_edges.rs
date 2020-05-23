@@ -1,7 +1,7 @@
 extern crate daggy;
 
-use daggy::{Dag, WouldCycle};
 use daggy::NodeIndex;
+use daggy::{Dag, WouldCycle};
 use std::iter::once;
 
 struct Weight;
@@ -95,9 +95,8 @@ fn add_edges_more2() {
         dag.add_node(Weight);
     }
     for &(a, b) in edges {
-        assert!(
-            dag.add_edge(NodeIndex::new(a), NodeIndex::new(b), 0)
-                .is_ok()
-        );
+        assert!(dag
+            .add_edge(NodeIndex::new(a), NodeIndex::new(b), 0)
+            .is_ok());
     }
 }

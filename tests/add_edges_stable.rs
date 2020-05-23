@@ -1,8 +1,8 @@
 #![cfg(feature = "stable_dag")]
 extern crate daggy;
 
+use daggy::stable_dag::{NodeIndex, StableDag};
 use daggy::WouldCycle;
-use daggy::stabledag::{StableDag, NodeIndex};
 use std::iter::once;
 
 struct Weight;
@@ -96,9 +96,8 @@ fn add_edges_more2() {
         dag.add_node(Weight);
     }
     for &(a, b) in edges {
-        assert!(
-            dag.add_edge(NodeIndex::new(a), NodeIndex::new(b), 0)
-                .is_ok()
-        );
+        assert!(dag
+            .add_edge(NodeIndex::new(a), NodeIndex::new(b), 0)
+            .is_ok());
     }
 }
