@@ -21,10 +21,11 @@ pub use petgraph;
 use petgraph as pg;
 use petgraph::algo::{has_path_connecting, DfsSpace};
 use petgraph::graph::{DefaultIx, DiGraph, GraphIndex, IndexType};
-use petgraph::visit::{GetAdjacencyMatrix, GraphBase, GraphProp, IntoEdgeReferences, IntoEdges,
-                      IntoEdgesDirected, IntoNeighbors, IntoNeighborsDirected,
-                      IntoNodeIdentifiers, IntoNodeReferences, NodeCompactIndexable, NodeCount,
-                      NodeIndexable, Visitable};
+use petgraph::visit::{
+    GetAdjacencyMatrix, GraphBase, GraphProp, IntoEdgeReferences, IntoEdges, IntoEdgesDirected,
+    IntoNeighbors, IntoNeighborsDirected, IntoNodeIdentifiers, IntoNodeReferences,
+    NodeCompactIndexable, NodeCount, NodeIndexable, Visitable,
+};
 use petgraph::IntoWeightedEdge;
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -640,7 +641,8 @@ fn must_check_for_cycle<N, E, Ix>(dag: &Dag<N, E, Ix>, a: NodeIndex<Ix>, b: Node
 where
     Ix: IndexType,
 {
-    dag.parents(a).walk_next(dag).is_some() && dag.children(b).walk_next(dag).is_some()
+    dag.parents(a).walk_next(dag).is_some()
+        && dag.children(b).walk_next(dag).is_some()
         && dag.find_edge(a, b).is_none()
 }
 
@@ -823,11 +825,7 @@ where
     }
 }
 
-impl<N, E, Ix> NodeCompactIndexable for Dag<N, E, Ix>
-where
-    Ix: IndexType,
-{
-}
+impl<N, E, Ix> NodeCompactIndexable for Dag<N, E, Ix> where Ix: IndexType {}
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for Dag<N, E, Ix>
 where

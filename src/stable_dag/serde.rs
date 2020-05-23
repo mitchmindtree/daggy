@@ -1,7 +1,7 @@
+use super::StableDag;
 use petgraph::algo::DfsSpace;
 use petgraph::graph::IndexType;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use super::StableDag;
 
 impl<N, E, Ix> Serialize for StableDag<N, E, Ix>
 where

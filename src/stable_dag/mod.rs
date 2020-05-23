@@ -6,11 +6,12 @@ use crate::walker;
 use crate::{Dag, WouldCycle};
 use petgraph as pg;
 use petgraph::algo::{has_path_connecting, DfsSpace};
-use petgraph::stable_graph::{DefaultIx, StableDiGraph, GraphIndex, IndexType};
-use petgraph::visit::{GetAdjacencyMatrix, GraphBase, GraphProp, IntoEdgeReferences, IntoEdges,
-                      IntoEdgesDirected, IntoNeighbors, IntoNeighborsDirected,
-                      IntoNodeIdentifiers, IntoNodeReferences, NodeCompactIndexable, NodeCount,
-                      NodeIndexable, Visitable};
+use petgraph::stable_graph::{DefaultIx, GraphIndex, IndexType, StableDiGraph};
+use petgraph::visit::{
+    GetAdjacencyMatrix, GraphBase, GraphProp, IntoEdgeReferences, IntoEdges, IntoEdgesDirected,
+    IntoNeighbors, IntoNeighborsDirected, IntoNodeIdentifiers, IntoNodeReferences,
+    NodeCompactIndexable, NodeCount, NodeIndexable, Visitable,
+};
 use petgraph::IntoWeightedEdge;
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
@@ -583,11 +584,16 @@ where
 ///
 /// If our parent *a* has no parents or our child *b* has no children, or if there was already an
 /// edge connecting *a* to *b*, we know that adding this edge has not caused the graph to cycle.
-fn must_check_for_cycle<N, E, Ix>(dag: &StableDag<N, E, Ix>, a: NodeIndex<Ix>, b: NodeIndex<Ix>) -> bool
+fn must_check_for_cycle<N, E, Ix>(
+    dag: &StableDag<N, E, Ix>,
+    a: NodeIndex<Ix>,
+    b: NodeIndex<Ix>,
+) -> bool
 where
     Ix: IndexType,
 {
-    dag.parents(a).walk_next(dag).is_some() && dag.children(b).walk_next(dag).is_some()
+    dag.parents(a).walk_next(dag).is_some()
+        && dag.children(b).walk_next(dag).is_some()
         && dag.find_edge(a, b).is_none()
 }
 
@@ -770,11 +776,7 @@ where
     }
 }
 
-impl<N, E, Ix> NodeCompactIndexable for StableDag<N, E, Ix>
-where
-    Ix: IndexType,
-{
-}
+impl<N, E, Ix> NodeCompactIndexable for StableDag<N, E, Ix> where Ix: IndexType {}
 
 impl<N, E, Ix> Index<NodeIndex<Ix>> for StableDag<N, E, Ix>
 where
@@ -864,7 +866,8 @@ where
 /// The resulting graph has the same node and edge indices as
 /// the original graph.
 impl<N, E, Ix> From<Dag<N, E, Ix>> for StableDag<N, E, Ix>
-    where Ix: IndexType,
+where
+    Ix: IndexType,
 {
     fn from(g: Dag<N, E, Ix>) -> Self {
         StableDag {
