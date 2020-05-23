@@ -1,6 +1,6 @@
 [package]
 name = "daggy"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 description = "A directed acyclic graph data structure library. It is Implemented on top of petgraph's Graph data structure and attempts to follow similar conventions where suitable."
 readme = "README.md"
