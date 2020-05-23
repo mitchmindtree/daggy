@@ -17,10 +17,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-pub extern crate petgraph;
-#[cfg(feature = "serde-1")]
-extern crate serde;
-
+pub use petgraph;
 use petgraph as pg;
 use petgraph::algo::{has_path_connecting, DfsSpace};
 use petgraph::graph::{DefaultIx, DiGraph, GraphIndex, IndexType};
@@ -29,8 +26,6 @@ use petgraph::visit::{GetAdjacencyMatrix, GraphBase, GraphProp, IntoEdgeReferenc
                       IntoNodeIdentifiers, IntoNodeReferences, NodeCompactIndexable, NodeCount,
                       NodeIndexable, Visitable};
 use petgraph::IntoWeightedEdge;
-#[cfg(feature = "serde-1")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
@@ -38,9 +33,10 @@ use std::ops::{Index, IndexMut};
 pub use petgraph::graph::{EdgeIndex, EdgeWeightsMut, NodeIndex, NodeWeightsMut};
 pub use petgraph::visit::Walker;
 
+#[cfg(feature = "serde-1")]
+mod serde;
 #[cfg(feature = "stable_dag")]
-pub mod stabledag;
-
+pub mod stable_dag;
 pub mod walker;
 
 /// Read only access into a **Dag**'s internal node array.
@@ -665,43 +661,6 @@ where
 {
     fn default() -> Self {
         Dag::new()
-    }
-}
-
-#[cfg(feature = "serde-1")]
-impl<N, E, Ix> Serialize for Dag<N, E, Ix>
-where
-    N: Serialize,
-    E: Serialize,
-    Ix: IndexType + Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.graph.serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde-1")]
-impl<'de, N, E, Ix> Deserialize<'de> for Dag<N, E, Ix>
-where
-    Self: Sized,
-    N: Deserialize<'de>,
-    E: Deserialize<'de>,
-    Ix: IndexType + Deserialize<'de>,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let graph = Deserialize::deserialize(deserializer)?;
-        let cycle_state = DfsSpace::new(&graph);
-        let dag = Dag {
-            graph: graph,
-            cycle_state: cycle_state,
-        };
-        Ok(dag)
     }
 }
 

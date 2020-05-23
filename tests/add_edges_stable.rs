@@ -2,7 +2,7 @@
 extern crate daggy;
 
 use daggy::WouldCycle;
-use daggy::stabledag::{StableDag, NodeIndex};
+use daggy::stable_dag::{StableDag, NodeIndex};
 use std::iter::once;
 
 struct Weight;

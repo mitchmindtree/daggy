@@ -8,9 +8,10 @@ keywords = ["dag", "directed", "acyclic", "graph", "data-structure"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/mitchmindtree/daggy.git"
 homepage = "https://github.com/mitchmindtree/daggy"
+edition = "2018"
 
 [dependencies]
-petgraph = { version = "0.4", default-features = false }
+petgraph = { version = "0.5", default-features = false }
 serde = { version = "1.0", optional = true }
 
 [features]
