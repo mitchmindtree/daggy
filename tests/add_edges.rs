@@ -46,6 +46,27 @@ fn add_edges_err() {
 }
 
 #[test]
+fn add_edges_err_loop() {
+    let mut dag = Dag::<Weight, u32, u32>::new();
+    let root = dag.add_node(Weight);
+    let a = dag.add_node(Weight);
+    let b = dag.add_node(Weight);
+    let c = dag.add_node(Weight);
+
+    let add_edges_result = dag.add_edges(
+        once((root, a, 0))
+            .chain(once((root, b, 1)))
+            .chain(once((root, c, 2)))
+            .chain(once((c, c, 3))),
+    );
+
+    match add_edges_result {
+        Err(WouldCycle(returned_weights)) => assert_eq!(returned_weights, vec![3, 2, 1, 0]),
+        Ok(_) => panic!("Should detect cycle with self"),
+    }
+}
+
+#[test]
 fn add_edges_more() {
     let mut dag = Dag::<Weight, u32, u32>::new();
     let root = dag.add_node(Weight);
