@@ -4,7 +4,7 @@
 //! data structure, exposing a refined API targeted towards directed acyclic graph related
 //! functionality.
 //!
-//! The [**Walker** trait](./walker/trait.Walker.html) defines a variety of useful methods for
+//! The [**Walker** trait](Walker) defines a variety of useful methods for
 //! traversing any graph type. Its methods behave similarly to iterator types, however **Walker**s
 //! do not require borrowing the graph. This means that we can still safely mutably borrow from the
 //! graph whilst we traverse it.
@@ -601,7 +601,7 @@ where
     /// If you require an iterator, use one of the **Walker** methods for converting this
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(child, pg::Incoming).detach();
         Parents {
@@ -619,7 +619,7 @@ where
     /// If you require an iterator, use one of the **Walker** methods for converting this
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(parent, pg::Outgoing).detach();
         Children {
@@ -631,7 +631,7 @@ where
 
     /// A **Walker** type that recursively walks the **Dag** using the given `recursive_fn`.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn recursive_walk<F>(
         &self,
         start: NodeIndex<Ix>,
