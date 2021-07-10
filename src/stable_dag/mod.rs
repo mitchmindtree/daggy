@@ -31,8 +31,7 @@ pub type Edges<'a, E, Ix> = pg::stable_graph::Edges<'a, E, pg::Directed, Ix>;
 /// StableDag is a thin wrapper around petgraph's `StableGraph` data structure, providing a refined
 /// API for dealing specifically with DAGs.
 ///
-/// Note: The following documentation is adapted from petgraph's [**StableGraph** documentation]
-/// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.StableGraph.html).
+/// Note: The following documentation is adapted from petgraph's [**StableGraph** documentation][1].
 ///
 /// **StableDag** is parameterized over the node weight **N**, edge weight **E** and index type
 /// **Ix**.
@@ -45,6 +44,9 @@ pub type Edges<'a, E, Ix> = pg::stable_graph::Edges<'a, E, pg::Directed, Ix>;
 ///
 /// The **StableDag** also offers methods for accessing the underlying **StableGraph**, which can be
 /// useful for taking advantage of petgraph's various graph-related algorithms.
+///
+///
+/// [1]: http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.StableGraph.html
 #[derive(Clone, Debug)]
 pub struct StableDag<N, E, Ix: IndexType = DefaultIx> {
     graph: StableDiGraph<N, E, Ix>,
@@ -307,7 +309,7 @@ where
     ///
     /// *a -> b*
     ///
-    /// This method behaves similarly to the [`add_edge`](./struct.StableDag.html#method.add_edge)
+    /// This method behaves similarly to the [`add_edge`][1]
     /// method, however rather than checking whether or not a cycle has been created after adding
     /// each edge, it only checks after all edges have been added. This makes it a slightly more
     /// performant and ergonomic option that repeatedly calling `add_edge`.
@@ -321,13 +323,18 @@ where
     /// the returned `Vec` will be the reverse of the given order.
     ///
     /// **Note:** StableDag allows adding parallel ("duplicate") edges. If you want to avoid this,
-    /// use [`update_edges`](./struct.StableDag.html#method.update_edges) instead.
+    /// use [`update_edges`][2] instead.
     ///
     /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
-    ///  the [add_child](./struct.StableDag.html#method.add_child) or [add_parent]
-    ///  (./struct.StableDag.html#method.add_parent) methods instead for greater convenience.
+    ///  the [add_child][3] or [add_parent][4] methods instead for greater convenience.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
+    ///
+    ///
+    /// [1]: ./struct.StableDag.html#method.add_edge
+    /// [2]: ./struct.StableDag.html#method.update_edges
+    /// [3]: ./struct.StableDag.html#method.add_child
+    /// [4]: ./struct.StableDag.html#method.add_parent
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>>
     where
         I: IntoIterator<Item = (NodeIndex<Ix>, NodeIndex<Ix>, E)>,
