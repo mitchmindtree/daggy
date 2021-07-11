@@ -71,7 +71,7 @@ pub type Edges<'a, E, Ix> = pg::graph::Edges<'a, E, pg::Directed, Ix>;
 /// for taking advantage of petgraph's various graph-related algorithms.
 ///
 ///
-/// [1]: http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.Graph.html
+/// [1]: petgraph::graph::Graph
 #[derive(Clone, Debug)]
 pub struct Dag<N, E, Ix: IndexType = DefaultIx> {
     graph: DiGraph<N, E, Ix>,
@@ -318,10 +318,10 @@ where
     /// **Panics** if the Graph is at the maximum number of edges for its index type.
     ///
     ///
-    /// [1]: http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/algo/fn.is_cyclic_directed.html
-    /// [2]: ./struct.Dag.html#method.update_edge
-    /// [3]: ./struct.Dag.html#method.add_child
-    /// [4]: ./struct.Dag.html#method.add_parent
+    /// [1]: petgraph::algo::is_cyclic_directed
+    /// [2]: Dag::update_edge
+    /// [3]: Dag::add_child
+    /// [4]: Dag::add_parent
     pub fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,

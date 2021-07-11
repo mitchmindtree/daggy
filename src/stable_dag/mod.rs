@@ -46,7 +46,7 @@ pub type Edges<'a, E, Ix> = pg::stable_graph::Edges<'a, E, pg::Directed, Ix>;
 /// useful for taking advantage of petgraph's various graph-related algorithms.
 ///
 ///
-/// [1]: http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.StableGraph.html
+/// [1]: petgraph::stable_graph::StableGraph
 #[derive(Clone, Debug)]
 pub struct StableDag<N, E, Ix: IndexType = DefaultIx> {
     graph: StableDiGraph<N, E, Ix>,
@@ -285,10 +285,10 @@ where
     /// **Panics** if the Graph is at the maximum number of edges for its index type.
     ///
     ///
-    /// [1]: http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/algo/fn.is_cyclic_directed.html
-    /// [2]: ./struct.StableDag.html#method.update_edge
-    /// [3]: ./struct.StableDag.html#method.add_child
-    /// [4]: ./struct.StableDag.html#method.add_parent
+    /// [1]: petgraph::algo::is_cyclic_directed
+    /// [2]: StableDag::update_edge
+    /// [3]: StableDag::add_child
+    /// [4]: StableDag::add_parent
     pub fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,
