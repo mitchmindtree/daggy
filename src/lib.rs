@@ -4,7 +4,7 @@
 //! data structure, exposing a refined API targeted towards directed acyclic graph related
 //! functionality.
 //!
-//! The [**Walker** trait](./walker/trait.Walker.html) defines a variety of useful methods for
+//! The [**Walker** trait](Walker) defines a variety of useful methods for
 //! traversing any graph type. Its methods behave similarly to iterator types, however **Walker**s
 //! do not require borrowing the graph. This means that we can still safely mutably borrow from the
 //! graph whilst we traverse it.
@@ -52,8 +52,7 @@ pub type Edges<'a, E, Ix> = pg::graph::Edges<'a, E, pg::Directed, Ix>;
 /// Dag is a thin wrapper around petgraph's `Graph` data structure, providing a refined API for
 /// dealing specifically with DAGs.
 ///
-/// Note: The following documentation is adapted from petgraph's [**Graph** documentation]
-/// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/graph/struct.Graph.html).
+/// Note: The following documentation is adapted from petgraph's [**Graph** documentation][1]
 ///
 /// **Dag** is parameterized over the node weight **N**, edge weight **E** and index type **Ix**.
 ///
@@ -70,6 +69,9 @@ pub type Edges<'a, E, Ix> = pg::graph::Edges<'a, E, pg::Directed, Ix>;
 ///
 /// The **Dag** also offers methods for accessing the underlying **Graph**, which can be useful
 /// for taking advantage of petgraph's various graph-related algorithms.
+///
+///
+/// [1]: petgraph::graph::Graph
 #[derive(Clone, Debug)]
 pub struct Dag<N, E, Ix: IndexType = DefaultIx> {
     graph: DiGraph<N, E, Ix>,
@@ -301,20 +303,25 @@ where
     /// If adding the edge **would** cause the graph to cycle, the edge will not be added and
     /// instead a `WouldCycle<E>` error with the given weight will be returned.
     ///
-    /// In the worst case, petgraph's [`is_cyclic_directed`]
-    /// (http://bluss.github.io/petulant-avenger-graphlibrary/doc/petgraph/algo/fn.is_cyclic_directed.html)
+    /// In the worst case, petgraph's [`is_cyclic_directed`][1]
     /// function is used to check whether or not adding the edge would create a cycle.
     ///
     /// **Note:** Dag allows adding parallel ("duplicate") edges. If you want to avoid this, use
-    /// [`update_edge`](./struct.Dag.html#method.update_edge) instead.
+    /// [`update_edge`][2] instead.
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
-    /// some other node, consider using the [add_child](./struct.Dag.html#method.add_child) or
-    /// [add_parent](./struct.Dag.html#method.add_parent) methods instead for better performance.
+    /// some other node, consider using the [add_child][3] or
+    /// [add_parent][4] methods instead for better performance.
     ///
     /// **Panics** if either `a` or `b` do not exist within the **Dag**.
     ///
     /// **Panics** if the Graph is at the maximum number of edges for its index type.
+    ///
+    ///
+    /// [1]: petgraph::algo::is_cyclic_directed
+    /// [2]: Dag::update_edge
+    /// [3]: Dag::add_child
+    /// [4]: Dag::add_parent
     pub fn add_edge(
         &mut self,
         a: NodeIndex<Ix>,
@@ -340,7 +347,7 @@ where
     ///
     /// *a -> b*
     ///
-    /// This method behaves similarly to the [`add_edge`](./struct.Dag.html#method.add_edge)
+    /// This method behaves similarly to the [`add_edge`][1]
     /// method, however rather than checking whether or not a cycle has been created after adding
     /// each edge, it only checks after all edges have been added. This makes it a slightly more
     /// performant and ergonomic option that repeatedly calling `add_edge`.
@@ -354,13 +361,18 @@ where
     /// the returned `Vec` will be the reverse of the given order.
     ///
     /// **Note:** Dag allows adding parallel ("duplicate") edges. If you want to avoid this, use
-    /// [`update_edges`](./struct.Dag.html#method.update_edges) instead.
+    /// [`update_edge`][2] instead.
     ///
     /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
-    ///  the [add_child](./struct.Dag.html#method.add_child) or [add_parent]
-    ///  (./struct.Dag.html#method.add_parent) methods instead for greater convenience.
+    ///  the [add_child][3] or [add_parent][4] methods instead for greater convenience.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
+    ///
+    ///
+    /// [1]: Dag::add_edge
+    /// [2]: Dag::update_edge
+    /// [3]: Dag::add_child
+    /// [4]: Dag::add_parent
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>>
     where
         I: IntoIterator<Item = (NodeIndex<Ix>, NodeIndex<Ix>, E)>,
@@ -589,7 +601,7 @@ where
     /// If you require an iterator, use one of the **Walker** methods for converting this
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(child, pg::Incoming).detach();
         Parents {
@@ -607,7 +619,7 @@ where
     /// If you require an iterator, use one of the **Walker** methods for converting this
     /// **Walker** into a similarly behaving **Iterator** type.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(parent, pg::Outgoing).detach();
         Children {
@@ -619,7 +631,7 @@ where
 
     /// A **Walker** type that recursively walks the **Dag** using the given `recursive_fn`.
     ///
-    /// See the [**Walker**](./walker/trait.Walker.html) trait for more useful methods.
+    /// See the [**Walker**](Walker) trait for more useful methods.
     pub fn recursive_walk<F>(
         &self,
         start: NodeIndex<Ix>,
