@@ -361,7 +361,7 @@ where
     /// the returned `Vec` will be the reverse of the given order.
     ///
     /// **Note:** Dag allows adding parallel ("duplicate") edges. If you want to avoid this, use
-    /// [`update_edges`][2] instead.
+    /// [`update_edge`][2] instead.
     ///
     /// **Note:** If you're adding a series of new nodes and edges to a single node, consider using
     ///  the [add_child][3] or [add_parent][4] methods instead for greater convenience.
@@ -369,10 +369,10 @@ where
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     ///
     ///
-    /// [1]: ./struct.Dag.html#method.add_edge
-    /// [2]: ./struct.Dag.html#method.update_edges
-    /// [3]: ./struct.Dag.html#method.add_child
-    /// [4]: ./struct.Dag.html#method.add_parent
+    /// [1]: Dag::add_edge
+    /// [2]: Dag::update_edge
+    /// [3]: Dag::add_child
+    /// [4]: Dag::add_parent
     pub fn add_edges<I>(&mut self, edges: I) -> Result<EdgeIndices<Ix>, WouldCycle<Vec<E>>>
     where
         I: IntoIterator<Item = (NodeIndex<Ix>, NodeIndex<Ix>, E)>,
