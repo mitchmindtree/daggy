@@ -592,6 +592,9 @@ fn must_check_for_cycle<N, E, Ix>(
 where
     Ix: IndexType,
 {
+    if a == b {
+        return true;
+    }
     dag.parents(a).walk_next(dag).is_some()
         && dag.children(b).walk_next(dag).is_some()
         && dag.find_edge(a, b).is_none()
