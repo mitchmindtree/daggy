@@ -642,6 +642,40 @@ where
     {
         walker::Recursive::new(start, recursive_fn)
     }
+
+    fn transitive_reduce_iter(
+        &mut self,
+        curr_node: NodeIndex<Ix>,
+        ancestors: &mut Vec<NodeIndex<Ix>>,
+    ) {
+        let mut redundant_edges = Vec::new();
+        for (_, child) in self.children(curr_node).iter(self) {
+            for (edge, coparent) in self.parents(child).iter(self) {
+                if ancestors.contains(&coparent) {
+                    redundant_edges.push(edge);
+                }
+            }
+        }
+        for edge in redundant_edges {
+            self.remove_edge(edge);
+        }
+
+        ancestors.push(curr_node);
+
+        let mut children = self.children(curr_node);
+        while let Some((_, child)) = children.walk_next(self) {
+            self.transitive_reduce_iter(child, ancestors)
+        }
+
+        ancestors.pop();
+    }
+
+    /// Mutates the DAG into its [transitive reduction](https://en.wikipedia.org/wiki/Directed_acyclic_graph#Transitive_closure_and_transitive_reduction)
+    pub fn transitive_reduce(&mut self, roots: Vec<NodeIndex<Ix>>) {
+        for root in roots {
+            self.transitive_reduce_iter(root, &mut Vec::new())
+        }
+    }
 }
 
 /// After adding a new edge to the graph, we use this function immediately after to check whether
