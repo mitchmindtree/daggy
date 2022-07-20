@@ -4,15 +4,14 @@
 //! data structure, exposing a refined API targeted towards directed acyclic graph related
 //! functionality.
 //!
-//! The [**Walker** trait](Walker) defines a variety of useful methods for
-//! traversing any graph type. Its methods behave similarly to iterator types, however **Walker**s
-//! do not require borrowing the graph. This means that we can still safely mutably borrow from the
-//! graph whilst we traverse it.
+//! The [`Walker`] trait defines a variety of useful methods for traversing any graph type. Its
+//! methods behave similarly to iterator types, however **Walker**s do not require borrowing the
+//! graph. This means that we can still safely mutably borrow from the graph whilst we traverse it.
 //!
 //!
-//! [1]: ./struct.Dag.html
-//! [2]: https://docs.rs/petgraph/0.4/petgraph/
-//! [3]: https://docs.rs/petgraph/0.4/petgraph/graph/struct.Graph.html
+//! [1]: Dag
+//! [2]: petgraph
+//! [3]: petgraph::graph::Graph
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -283,8 +282,8 @@ where
     /// Returns the index of the new node.
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
-    /// some other node, consider using the [add_child](./struct.Dag.html#method.add_child) or
-    /// [add_parent](./struct.Dag.html#method.add_parent) methods instead for better performance.
+    /// some other node, consider using the [add_child](Dag::add_child) or
+    /// [add_parent](Dag::add_parent) methods instead for better performance.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
     pub fn add_node(&mut self, weight: N) -> NodeIndex<Ix> {
@@ -414,7 +413,7 @@ where
     ///
     /// If the edge doesn't already exist, it will be added using the `add_edge` method.
     ///
-    /// Please read the [`add_edge`](./struct.Dag.html#method.add_edge) for more important details.
+    /// Please read the [`add_edge`](Dag::add_edge) method documentation for more important details.
     ///
     /// Checks if the edge would create a cycle in the Graph.
     ///
@@ -425,7 +424,7 @@ where
     /// cycle.
     ///
     /// **Note:** If you're adding a new node and immediately adding a single edge to that node from
-    /// some parent node, consider using the [`add_child`](./struct.Dag.html#method.add_child)
+    /// some parent node, consider using the [`add_child`](Dag::add_child)
     /// method instead for greater convenience.
     ///
     /// **Panics** if the Graph is at the maximum number of nodes for its index type.
