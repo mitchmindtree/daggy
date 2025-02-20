@@ -4,13 +4,10 @@ jobs:
   rustfmt-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
         components: rustfmt
     - name: Run rustfmt
       uses: actions-rs/cargo@v1
@@ -21,13 +18,8 @@ jobs:
   cargo-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
     - name: cargo test
       uses: actions-rs/cargo@v1
       with:
@@ -37,34 +29,17 @@ jobs:
   cargo-test-all-features:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
     - name: cargo test all features
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --all-features --verbose
+      run: cargo test --all-features
 
   cargo-doc-all-features:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-    - name: cargo doc
-      uses: actions-rs/cargo@v1
-      with:
-        command: doc
-        args: --all-features --verbose
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo doc --no-deps
 
   cargo-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -72,13 +47,10 @@ jobs:
       CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: stable
-        override: true
     - name: cargo publish daggy
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN
