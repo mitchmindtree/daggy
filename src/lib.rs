@@ -10,9 +10,9 @@
 //! graph whilst we traverse it.
 //!
 //!
-//! [1]: ./struct.Dag.html
-//! [2]: https://docs.rs/petgraph/0.4/petgraph/
-//! [3]: https://docs.rs/petgraph/0.4/petgraph/graph/struct.Graph.html
+//! [1]: https://docs.rs/daggy/latest/daggy/struct.Dag.html
+//! [2]: https://docs.rs/petgraph/0.7.1/petgraph/
+//! [3]: https://docs.rs/petgraph/0.7.1/petgraph/graph/struct.Graph.html
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
