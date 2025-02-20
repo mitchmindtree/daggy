@@ -1,0 +1,19 @@
+name: publish
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  cargo-publish:
+    env:
+      CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+    - name: cargo publish daggy
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN
