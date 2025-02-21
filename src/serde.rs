@@ -30,10 +30,7 @@ where
     {
         let graph = Deserialize::deserialize(deserializer)?;
         let cycle_state = DfsSpace::new(&graph);
-        let dag = Dag {
-            graph,
-            cycle_state,
-        };
+        let dag = Dag { graph, cycle_state };
         Ok(dag)
     }
 }
