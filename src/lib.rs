@@ -8,10 +8,19 @@
 //! methods behave similarly to iterator types, however **Walker**s do not require borrowing the
 //! graph. This means that we can still safely mutably borrow from the graph whilst we traverse it.
 //!
-//!
 //! [1]: Dag
 //! [2]: petgraph
 //! [3]: petgraph::graph::Graph
+//!
+//!
+//! ## Usage
+//!
+//! Use daggy in your project by adding it to your `Cargo.toml` dependencies:
+//!
+//! ```toml
+//! [dependencies]
+//! daggy = "0.8.1"
+//! ```
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]

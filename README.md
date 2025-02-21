@@ -3,7 +3,7 @@
 
 A [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) data structure for Rust.
 
-It is Implemented on top of [petgraph](https://github.com/petgraph/petgraph)'s [Graph](https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html) data structure and attempts to follow similar conventions where suitable.
+It is implemented on top of [petgraph](https://github.com/petgraph/petgraph)'s [Graph](https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html) data structure and attempts to follow similar conventions where suitable.
 
 
 Usage
@@ -11,11 +11,11 @@ Usage
 
 Please see the [tests directory](https://github.com/mitchmindtree/daggy/tree/master/tests) for some basic usage examples.
 
-Use daggy in your project by adding it to your Cargo.toml dependencies like so:
+Use daggy in your project by adding it to your `Cargo.toml` dependencies:
 
 ```toml
 [dependencies]
-daggy = "*"
+daggy = "0.8.1"
 ```
 
 
