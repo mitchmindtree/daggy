@@ -27,6 +27,58 @@
 //! # Allows the `Dag` to be serialized and deserialized.
 //! daggy = { version = "0.8.1", features = ["serde-1"] }
 //! ```
+//!
+//! # Examples
+//!
+//! > Please see the [tests directory][4] for some basic usage examples.
+//!
+//! Transitive reduction:
+//!
+//! ```rust
+//! use daggy::Dag;
+//!
+//! let mut dag = Dag::<&str, &str>::new();
+//!
+//! // Reduce edges:
+//! //
+//! // ```text
+//! // # Before:          | # After:
+//! //                    |
+//! // a -> b ----.       | a -> b ----.
+//! //  |         |       |  |         |
+//! //  |-> c ----|----.  |  '-> c     |
+//! //  |    \    |    |  |       \    |
+//! //  |     \   v    |  |        \   v
+//! //  |------>> d    |  |         '> d
+//! //  |          \   v  |             \
+//! //  '----------->> e  |              '> e
+//! // ```
+//!
+//! let a = dag.add_node("a");
+//!
+//! let (_, b) = dag.add_child(a, "a->b", "b");
+//! let (_, c) = dag.add_child(a, "a->c", "c");
+//! let (_, d) = dag.add_child(a, "a->d", "d");
+//! let (_, e) = dag.add_child(a, "a->e", "e");
+//!
+//! dag.add_edge(b, d, "b->d").unwrap();
+//!
+//! dag.add_edge(c, d, "c->d").unwrap();
+//! dag.add_edge(c, e, "c->e").unwrap();
+//!
+//! dag.add_edge(d, e, "d->e").unwrap();
+//!
+//! assert_eq!(dag.edge_count(), 8);
+//!
+//! dag.transitive_reduce(vec![a]);
+//!
+//! let mut edges = dag.graph().edge_weights().copied().collect::<Vec<_>>();
+//! edges.sort();
+//! assert_eq!(dag.edge_count(), 5);
+//! assert_eq!(&edges, &["a->b", "a->c", "b->d", "c->d", "d->e"]);
+//! ```
+//!
+//! [4]: https://github.com/mitchmindtree/daggy/tree/master/tests
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
