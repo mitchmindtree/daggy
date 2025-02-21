@@ -20,6 +20,12 @@
 //! ```toml
 //! [dependencies]
 //! daggy = "0.8.1"
+//!
+//! # Enables the `StableDag` type.
+//! daggy = { version = "0.8.1", features = ["stable_dag"] }
+//!
+//! # Allows the `Dag` to be serialized and deserialized.
+//! daggy = { version = "0.8.1", features = ["serde-1"] }
 //! ```
 
 #![forbid(unsafe_code)]
