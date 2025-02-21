@@ -18,10 +18,7 @@ jobs:
         toolchain: nightly
         components: rustfmt
     - name: Run rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+      run: cargo fmt --all -- --check
 
   clippy:
     name: Clippy
@@ -43,10 +40,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
     - name: cargo test
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --verbose
+      run: cargo test --verbose
 
   cargo-test-all-features:
     runs-on: ubuntu-latest
