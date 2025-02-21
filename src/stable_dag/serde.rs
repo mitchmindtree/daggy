@@ -31,8 +31,8 @@ where
         let graph = Deserialize::deserialize(deserializer)?;
         let cycle_state = DfsSpace::new(&graph);
         let dag = StableDag {
-            graph: graph,
-            cycle_state: cycle_state,
+            graph,
+            cycle_state,
         };
         Ok(dag)
     }
