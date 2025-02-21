@@ -23,7 +23,7 @@ where
     pub fn new(start: G::NodeId, recursive_fn: F) -> Self {
         Recursive {
             next: start,
-            recursive_fn: recursive_fn,
+            recursive_fn,
             _graph: PhantomData,
         }
     }
@@ -42,7 +42,7 @@ where
     }
 }
 
-impl<'a, G, F> Walker<&'a G> for Recursive<G, F>
+impl<G, F> Walker<&G> for Recursive<G, F>
 where
     G: GraphBase,
     F: FnMut(&G, G::NodeId) -> Option<(G::EdgeId, G::NodeId)>,
@@ -429,9 +429,8 @@ where
     type Item = W::Item;
     #[inline]
     fn walk_next(&mut self, graph: G) -> Option<W::Item> {
-        self.walker.walk_next(graph).map(|item| {
-            (self.f)(graph, &item);
-            item
+        self.walker.walk_next(graph).inspect(|item| {
+            (self.f)(graph, item);
         })
     }
 }

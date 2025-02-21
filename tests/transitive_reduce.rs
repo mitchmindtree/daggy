@@ -7,6 +7,32 @@ fn transitive_reduce() {
     let mut dag = Dag::<&str, &str>::new();
 
     // construct example DAG from wikipedia
+    //
+    // Before reduce:
+    //
+    // ```text
+    // a -> b ----.
+    //  |         |
+    //  |-> c ----|----.
+    //  |    \    |    |
+    //  |     \   v    |
+    //  |------>> d    |
+    //  |          \   v
+    //  '----------->> e
+    // ```
+    //
+    // After reduce:
+    //
+    // ```text
+    // a -> b ----.
+    //  |         |
+    //  '-> c     |
+    //       \    |
+    //        \   v
+    //         '> d
+    //             \
+    //              '> e
+    // ```
 
     let a = dag.add_node("a");
 
@@ -26,7 +52,10 @@ fn transitive_reduce() {
 
     dag.transitive_reduce(vec![a]);
 
+    let mut edges = dag.graph().edge_weights().copied().collect::<Vec<_>>();
+    edges.sort();
     assert_eq!(dag.edge_count(), 5);
+    assert_eq!(&edges, &["a->b", "a->c", "b->d", "c->d", "d->e"]);
 
     // test case where the alternate route from the parent is more than one node long
 
@@ -36,5 +65,8 @@ fn transitive_reduce() {
 
     dag.transitive_reduce(vec![a]);
 
+    let mut edges = dag.graph().edge_weights().copied().collect::<Vec<_>>();
+    edges.sort();
     assert_eq!(dag.edge_count(), 5);
+    assert_eq!(&edges, &["a->b", "a->c", "b->d", "c->d", "d->e"]);
 }

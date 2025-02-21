@@ -182,10 +182,7 @@ where
     {
         let graph = self.graph.map(node_map, edge_map);
         let cycle_state = self.cycle_state.clone();
-        StableDag {
-            graph: graph,
-            cycle_state: cycle_state,
-        }
+        StableDag { graph, cycle_state }
     }
 
     /// Create a new `StableDag` by mapping node and edge weights. A node or edge may be mapped to
@@ -203,10 +200,7 @@ where
     {
         let graph = self.graph.filter_map(node_map, edge_map);
         let cycle_state = DfsSpace::new(&graph);
-        StableDag {
-            graph: graph,
-            cycle_state: cycle_state,
-        }
+        StableDag { graph, cycle_state }
     }
 
     /// Removes all nodes and edges from the **StableDag**.
@@ -349,10 +343,8 @@ where
 
         for (a, b, weight) in edges {
             // Check whether or not we'll need to check for cycles.
-            if !should_check_for_cycle {
-                if must_check_for_cycle(self, a, b) {
-                    should_check_for_cycle = true;
-                }
+            if !should_check_for_cycle && must_check_for_cycle(self, a, b) {
+                should_check_for_cycle = true;
             }
 
             self.graph.add_edge(a, b, weight);
@@ -506,6 +498,7 @@ where
     /// Both indices can be either `NodeIndex`s, `EdgeIndex`s or a combination of the two.
     ///
     /// **Panics** if the indices are equal or if they are out of bounds.
+    #[allow(clippy::type_complexity)]
     pub fn index_twice_mut<A, B>(
         &mut self,
         a: A,
@@ -552,7 +545,7 @@ where
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(child, pg::Incoming).detach();
         Parents {
-            walk_edges: walk_edges,
+            walk_edges,
             _node: PhantomData,
             _edge: PhantomData,
         }
@@ -570,7 +563,7 @@ where
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(parent, pg::Outgoing).detach();
         Children {
-            walk_edges: walk_edges,
+            walk_edges,
             _node: PhantomData,
             _edge: PhantomData,
         }
@@ -614,12 +607,12 @@ where
 
 // Dag implementations.
 
-impl<N, E, Ix> Into<StableDiGraph<N, E, Ix>> for StableDag<N, E, Ix>
+impl<N, E, Ix> From<StableDag<N, E, Ix>> for StableDiGraph<N, E, Ix>
 where
     Ix: IndexType,
 {
-    fn into(self) -> StableDiGraph<N, E, Ix> {
-        self.into_graph()
+    fn from(val: StableDag<N, E, Ix>) -> Self {
+        val.into_graph()
     }
 }
 

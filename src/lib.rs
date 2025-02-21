@@ -8,10 +8,77 @@
 //! methods behave similarly to iterator types, however **Walker**s do not require borrowing the
 //! graph. This means that we can still safely mutably borrow from the graph whilst we traverse it.
 //!
-//!
 //! [1]: Dag
 //! [2]: petgraph
 //! [3]: petgraph::graph::Graph
+//!
+//!
+//! ## Usage
+//!
+//! Use daggy in your project by adding it to your `Cargo.toml` dependencies:
+//!
+//! ```toml
+//! [dependencies]
+//! daggy = "0.8.1"
+//!
+//! # Enables the `StableDag` type.
+//! daggy = { version = "0.8.1", features = ["stable_dag"] }
+//!
+//! # Allows the `Dag` to be serialized and deserialized.
+//! daggy = { version = "0.8.1", features = ["serde-1"] }
+//! ```
+//!
+//! # Examples
+//!
+//! > Please see the [tests directory][4] for some basic usage examples.
+//!
+//! Transitive reduction:
+//!
+//! ```rust
+//! use daggy::Dag;
+//!
+//! let mut dag = Dag::<&str, &str>::new();
+//!
+//! // Reduce edges:
+//! //
+//! // ```text
+//! // # Before:          | # After:
+//! //                    |
+//! // a -> b ----.       | a -> b ----.
+//! //  |         |       |  |         |
+//! //  |-> c ----|----.  |  '-> c     |
+//! //  |    \    |    |  |       \    |
+//! //  |     \   v    |  |        \   v
+//! //  |------>> d    |  |         '> d
+//! //  |          \   v  |             \
+//! //  '----------->> e  |              '> e
+//! // ```
+//!
+//! let a = dag.add_node("a");
+//!
+//! let (_, b) = dag.add_child(a, "a->b", "b");
+//! let (_, c) = dag.add_child(a, "a->c", "c");
+//! let (_, d) = dag.add_child(a, "a->d", "d");
+//! let (_, e) = dag.add_child(a, "a->e", "e");
+//!
+//! dag.add_edge(b, d, "b->d").unwrap();
+//!
+//! dag.add_edge(c, d, "c->d").unwrap();
+//! dag.add_edge(c, e, "c->e").unwrap();
+//!
+//! dag.add_edge(d, e, "d->e").unwrap();
+//!
+//! assert_eq!(dag.edge_count(), 8);
+//!
+//! dag.transitive_reduce(vec![a]);
+//!
+//! let mut edges = dag.graph().edge_weights().copied().collect::<Vec<_>>();
+//! edges.sort();
+//! assert_eq!(dag.edge_count(), 5);
+//! assert_eq!(&edges, &["a->b", "a->c", "b->d", "c->d", "d->e"]);
+//! ```
+//!
+//! [4]: https://github.com/mitchmindtree/daggy/tree/master/tests
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -211,10 +278,7 @@ where
     {
         let graph = self.graph.map(node_map, edge_map);
         let cycle_state = self.cycle_state.clone();
-        Dag {
-            graph: graph,
-            cycle_state: cycle_state,
-        }
+        Dag { graph, cycle_state }
     }
 
     /// Create a new `Dag` by mapping node and edge weights. A node or edge may be mapped to `None`
@@ -237,10 +301,7 @@ where
     {
         let graph = self.graph.filter_map(node_map, edge_map);
         let cycle_state = DfsSpace::new(&graph);
-        Dag {
-            graph: graph,
-            cycle_state: cycle_state,
-        }
+        Dag { graph, cycle_state }
     }
 
     /// Removes all nodes and edges from the **Dag**.
@@ -434,10 +495,8 @@ where
 
         for (a, b, weight) in edges {
             // Check whether or not we'll need to check for cycles.
-            if !should_check_for_cycle {
-                if must_check_for_cycle(self, a, b) {
-                    should_check_for_cycle = true;
-                }
+            if !should_check_for_cycle && must_check_for_cycle(self, a, b) {
+                should_check_for_cycle = true;
             }
 
             self.graph.add_edge(a, b, weight);
@@ -614,6 +673,7 @@ where
     /// Both indices can be either `NodeIndex`s, `EdgeIndex`s or a combination of the two.
     ///
     /// **Panics** if the indices are equal or if they are out of bounds.
+    #[allow(clippy::type_complexity)]
     pub fn index_twice_mut<A, B>(
         &mut self,
         a: A,
@@ -657,7 +717,7 @@ where
     pub fn parents(&self, child: NodeIndex<Ix>) -> Parents<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(child, pg::Incoming).detach();
         Parents {
-            walk_edges: walk_edges,
+            walk_edges,
             _node: PhantomData,
             _edge: PhantomData,
         }
@@ -675,7 +735,7 @@ where
     pub fn children(&self, parent: NodeIndex<Ix>) -> Children<N, E, Ix> {
         let walk_edges = self.graph.neighbors_directed(parent, pg::Outgoing).detach();
         Children {
-            walk_edges: walk_edges,
+            walk_edges,
             _node: PhantomData,
             _edge: PhantomData,
         }
@@ -749,12 +809,12 @@ where
 
 // Dag implementations.
 
-impl<N, E, Ix> Into<DiGraph<N, E, Ix>> for Dag<N, E, Ix>
+impl<N, E, Ix> From<Dag<N, E, Ix>> for DiGraph<N, E, Ix>
 where
     Ix: IndexType,
 {
-    fn into(self) -> DiGraph<N, E, Ix> {
-        self.into_graph()
+    fn from(val: Dag<N, E, Ix>) -> Self {
+        val.into_graph()
     }
 }
 
@@ -890,7 +950,7 @@ where
     }
 }
 
-impl<'a, N, E, Ix> IntoNodeIdentifiers for &'a Dag<N, E, Ix>
+impl<N, E, Ix> IntoNodeIdentifiers for &Dag<N, E, Ix>
 where
     Ix: IndexType,
 {
