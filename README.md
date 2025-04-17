@@ -12,13 +12,13 @@ Use daggy in your project by adding it to your `Cargo.toml` dependencies:
 
 ```toml
 [dependencies]
-daggy = "0.8.1"
+daggy = "0.9.0"
 
 # Enables the `StableDag` type.
-daggy = { version = "0.8.1", features = ["stable_dag"] }
+daggy = { version = "0.9.0", features = ["stable_dag"] }
 
 # Allows the `Dag` to be serialized and deserialized.
-daggy = { version = "0.8.1", features = ["serde-1"] }
+daggy = { version = "0.9.0", features = ["serde-1"] }
 ```
 
 ## Examples
